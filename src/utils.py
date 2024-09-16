@@ -68,13 +68,14 @@ class LoanDataset(Dataset):
 
 def load_data(data: pd.DataFrame, batch_size: int):
 
-    train_dataset = LoanDataset(data)
-    train_dataset, val_dataset, test_dataset = random_split(train_dataset, [0.6, 0.2, 0.2])
+    dataset = LoanDataset(data)
+
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [0.6, 0.2, 0.2])
 
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, drop_last=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, drop_last=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, drop_last=True, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, drop_last=True, shuffle=True)
 
     return train_dataloader, val_dataloader, test_dataloader
 

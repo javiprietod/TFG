@@ -36,21 +36,22 @@ def train_step(
 
     for (user, target) in train_data:
         user = user.to(device)
-        target = target.to(device)
+        target = target.to(device).long()
 
         optimizer.zero_grad()
         
-        outputs = model(user)[:, 0]
-        loss_value = loss(outputs, target)
+        outputs = model(user)
+        loss_value = loss(outputs.float(), target)
 
         loss_value.backward()
         optimizer.step()
 
         losses.append(loss_value.item())
         elements += target.shape[0]
+        outputs = torch.argmax(outputs, dim=1)
         correct += torch.sum(outputs == target).item()
 
-
+    print(f"Epoch {epoch} - train accuracy: {correct / elements}")
 
     
     # write on tensorboard
@@ -87,15 +88,17 @@ def val_step(
 
         for (user, target) in val_data:
             user = user.to(device)
-            target = target.to(device)
+            target = target.to(device).long()
 
-            outputs = model(user)[:, 0]
-            loss_value = loss(outputs, target)
+            outputs = model(user)
+            loss_value = loss(outputs.float(), target)
             losses.append(loss_value.item())
             elements += target.shape[0]
+            outputs = torch.argmax(outputs, dim=1)
             correct += torch.sum(outputs == target).item()
         
         # write on tensorboard
+        print(f"Epoch {epoch} - val accuracy: {correct / elements}")
         writer.add_scalar("val/accuracy", correct / elements, epoch)
         writer.add_scalar("val/loss", np.mean(losses), epoch)
 

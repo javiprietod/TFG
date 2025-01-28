@@ -21,7 +21,9 @@ class LogisticModel(nn.Module):
             self.layers.append(nn.Linear(input_dim, 2))
         else:
             self.layers.append(nn.Linear(hidden_sizes[-1], 2))
+        self.layers.append(nn.Softmax(dim=1)) # revisar si lo hace bien
         self.model = nn.Sequential(*self.layers)
+
 
     def forward(self, inputs):
         return self.model(inputs)

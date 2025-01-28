@@ -1,13 +1,16 @@
+
 # deep learning libraries
 import torch
-import numpy as np
-import pandas as pd
 from torch.jit import RecursiveScriptModule
 from torch.utils.data import Dataset, DataLoader, random_split
+from sklearn.preprocessing import StandardScaler
 
 # other libraries
+import numpy as np
+import pandas as pd
 import os
 import random
+import yaml
 
 # TODO : Change doc strings 
 class LoanDataset(Dataset):
@@ -22,7 +25,7 @@ class LoanDataset(Dataset):
 
     dataset: torch.Tensor
 
-    def __init__(self, dataset: pd.DataFrame) -> None:
+    def __init__(self, dataset: pd.DataFrame, target_column: str) -> None:
         """
         Constructor of ElectricDataset.
 
@@ -34,8 +37,8 @@ class LoanDataset(Dataset):
                 prediction.
         """
 
-        self.data = torch.tensor(np.array(dataset))[:, :-1]
-        self.targets = torch.tensor(np.array(dataset))[:, -1]
+        self.data = torch.tensor(np.array(dataset.drop(target_column, axis=1)))
+        self.targets = torch.tensor(np.array(dataset[target_column]))
 
     def __len__(self) -> int:
         """
@@ -64,20 +67,104 @@ class LoanDataset(Dataset):
         """
         
         return self.data[index], self.targets[index]
+    
+class DatasetMetadata:
+    def __init__(self):
+        self.path: str = None
+        self.batch_size: int = None
+        self.cols_for_mask: np.ndarray = None
+        self.scaler: StandardScaler = None
+        self.cols_for_scaler: np.ndarray = None
+        self.columns: np.ndarray = None
+        self.data: pd.DataFrame = None
 
 
-def load_data(data: pd.DataFrame, batch_size: int):
+def clean_data(df: pd.DataFrame, metadata: DatasetMetadata) -> pd.DataFrame:
+    """
+    This function cleans the data by removing the rows with missing values.
 
-    dataset = LoanDataset(data)
+    Args:
+        df: dataframe with the data.
 
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [0.6, 0.2, 0.2])
+    Returns:
+        dataframe without missing values.
+    """
 
+    # drop missing values
+    df = df.dropna()
+    # filter for the columns that have different values for each row
+    # take the first column of the filtered columns
+    # This can change from dataset to dataset but it is a good starting point
+    id_column = df.loc[:, df.nunique() == len(df)].columns[0]
+    
+    df = df.drop(id_column, axis=1)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, drop_last=True, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, drop_last=True, shuffle=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, drop_last=True, shuffle=True)
+    # drop columns that only have one value
+    df = df.loc[:, df.nunique() > 1]
 
-    return train_dataloader, val_dataloader, test_dataloader
+    # drop duplicates
+    df = df.drop_duplicates()
+
+    # scale the numerical columns
+    scaler = StandardScaler()
+    target_column = df.loc[:, df.nunique() == 2].select_dtypes(include=[int]).columns[-1]
+    num_columns = df.select_dtypes(exclude=['object']).columns.drop(target_column)
+    df[num_columns] = scaler.fit_transform(df[num_columns])
+    # one hot encode the categorical columns
+    obj_columns = df.select_dtypes(include=[object]).columns
+
+    df_encoded = pd.get_dummies(df, columns=obj_columns, drop_first=True)
+    
+    bool_cols = df_encoded.select_dtypes(include=[bool]).columns
+
+    df_encoded[bool_cols] = df_encoded[bool_cols].astype(int)
+    
+    metadata.scaler = scaler
+    metadata.cols_for_scaler = df_encoded.drop(target_column, axis=1).columns.isin(num_columns)
+
+    return df_encoded
+
+def load_data(path: str, batch_size: int) -> tuple[DataLoader, DataLoader, DataLoader, torch.Tensor, DatasetMetadata]:
+    
+    set_seed(42)
+
+    df = pd.read_csv(path)
+
+    metadata = DatasetMetadata()
+
+    metadata.path = path
+    metadata.batch_size = batch_size
+
+    # target column
+    # search for the column that has only 1 and 0
+    target_column = df.loc[:, df.nunique() == 2].select_dtypes(include=[int]).columns[0]
+    # class_weights = torch.tensor(list(df[target_column].value_counts(normalize=True))[::-1])
+    class_weights = torch.tensor([0.2, 0.8])
+
+    data = clean_data(df, metadata)
+    # print(len(data))
+    # class imbalance
+
+    metadata.columns = data.drop(target_column, axis=1).columns
+
+    with open("datasets.yaml", "r") as file:
+        datasets = yaml.safe_load(file)
+
+    cols_for_mask = datasets[path]
+    # create a mask for the columns
+    col_mask = data.columns.isin(cols_for_mask)[:-1]
+    metadata.cols_for_mask = col_mask
+    metadata.data = data
+
+    dataset = LoanDataset(data, target_column)
+
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [0.6, 0.2, 0.2], generator=torch.Generator().manual_seed(42))
+
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+    return train_dataloader, val_dataloader, test_dataloader, class_weights, metadata
 
 
 def save_model(model: torch.nn.Module, name: str) -> None:

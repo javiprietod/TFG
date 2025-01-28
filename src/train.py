@@ -12,14 +12,17 @@ import importlib
 import src.train_functions
 import src.utils
 import src.models
+import src.evaluate
 
 importlib.reload(src.train_functions)
 importlib.reload(src.utils)
 importlib.reload(src.models)
+importlib.reload(src.evaluate)
 
 from src.train_functions import train_step, val_step
 from src.utils import load_data, set_seed, save_model, parameters_to_double
 from src.models import LogisticModel
+from src.evaluate import main as main_ev
 
 
 set_seed(42)
@@ -28,7 +31,7 @@ set_seed(42)
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
-def main() -> None:
+def main(path: str) -> None:
     """
     This function is the main program for training.
     """
@@ -36,10 +39,10 @@ def main() -> None:
     # probar con más epochs los mejores 3 modelos
 
     # hyperparameters
-    epochs: int = 5
-    lr: float = 3e-3
-    batch_size: int = 1024
-    # hidden_sizes: tuple[int, ...] = (512, 256, 128, 64) #256 128
+    epochs: int = 10
+    lr: float = 4e-4
+    batch_size: int = 128
+    hidden_sizes: tuple[int, ...] = [128, 64] #(128, 64)
 
     # empty nohup file
     open("nohup.out", "w").close()
@@ -47,22 +50,23 @@ def main() -> None:
     # load data
     train_data: DataLoader
     val_data: DataLoader
-    train_data, val_data, _ = load_data(df_encoded, batch_size=batch_size)
+    train_data, val_data, _, class_weights, _ = load_data(path, batch_size=batch_size)
 
     # define name and writer
-    name: str = f"model_logistic_lr_{lr}_bs_{batch_size}_epochs_{epochs}"
+    name: str = f"model_logistic_lr_{lr}_bs_{batch_size}_hs_{hidden_sizes}_{epochs}"
     writer: SummaryWriter = SummaryWriter(f"runs/{name}")
 
     # define model
     inputs: torch.Tensor = next(iter(train_data))[0]
     model: torch.nn.Module = LogisticModel(
-        inputs.shape[1],
+        inputs.shape[1], hidden_sizes,
     ).to(device)
     parameters_to_double(model)
 
     # define loss and optimizer
-    loss: torch.nn.Module = torch.nn.BCELoss()
-    optimizer: torch.optim.Optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    loss: torch.nn.Module = torch.nn.CrossEntropyLoss(weight=class_weights)
+    # loss: torch.nn.Module = torch.nn.CrossEntropyLoss()
+    optimizer: torch.optim.Optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
 
     # train loop
     for epoch in tqdm(range(epochs)):
@@ -75,8 +79,14 @@ def main() -> None:
     # save model
     save_model(model, name)
 
+
+    # TODO: quitar
+    accuracy, f1_score, confusion_matrix = main_ev(path, name)
+    print(f"Accuracy: {accuracy}")
+    print(f"F1 Score: {f1_score}")
+    print(f"Confusion Matrix: \n{confusion_matrix}")
     return None
 
 
 if __name__ == "__main__":
-    main()
+    main('data/Loan_default.csv')

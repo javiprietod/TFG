@@ -29,7 +29,7 @@ set_seed(42)
 
 # set device
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+    
 
 def main(path: str) -> None:
     """
@@ -39,10 +39,10 @@ def main(path: str) -> None:
     # probar con más epochs los mejores 3 modelos
 
     # hyperparameters
-    epochs: int = 10
+    epochs: int = 3
     lr: float = 4e-4
     batch_size: int = 128
-    hidden_sizes: tuple[int, ...] = [128, 64] #(128, 64)
+    hidden_sizes: tuple[int, ...] = [16, 8] #(128, 64)
 
     # empty nohup file
     open("nohup.out", "w").close()
@@ -53,7 +53,8 @@ def main(path: str) -> None:
     train_data, val_data, _, class_weights, _ = load_data(path, batch_size=batch_size)
 
     # define name and writer
-    name: str = f"model_logistic_lr_{lr}_bs_{batch_size}_hs_{hidden_sizes}_{epochs}"
+    # name: str = f"model_logistic_lr_{lr}_bs_{batch_size}_hs_{hidden_sizes}_{epochs}"
+    name: str = f"model_small"
     writer: SummaryWriter = SummaryWriter(f"runs/{name}")
 
     # define model

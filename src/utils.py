@@ -75,6 +75,7 @@ class DatasetMetadata:
         self.cols_for_mask: np.ndarray = None
         self.scaler: StandardScaler = None
         self.cols_for_scaler: np.ndarray = None
+        self.int_cols: np.ndarray = None
         self.columns: np.ndarray = None
         self.data: pd.DataFrame = None
 
@@ -108,6 +109,7 @@ def clean_data(df: pd.DataFrame, metadata: DatasetMetadata) -> pd.DataFrame:
     # scale the numerical columns
     scaler = StandardScaler()
     target_column = df.loc[:, df.nunique() == 2].select_dtypes(include=[int]).columns[-1]
+    int_cols = df.drop(target_column, axis=1).select_dtypes(include=[int]).columns
     num_columns = df.select_dtypes(exclude=['object']).columns.drop(target_column)
     df[num_columns] = scaler.fit_transform(df[num_columns])
     # one hot encode the categorical columns
@@ -121,6 +123,7 @@ def clean_data(df: pd.DataFrame, metadata: DatasetMetadata) -> pd.DataFrame:
     
     metadata.scaler = scaler
     metadata.cols_for_scaler = df_encoded.drop(target_column, axis=1).columns.isin(num_columns)
+    metadata.int_cols = df_encoded.drop(target_column, axis=1).columns.isin(int_cols)
 
     return df_encoded
 

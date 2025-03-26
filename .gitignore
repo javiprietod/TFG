@@ -1,5 +1,6 @@
 # Data folder
 data/
+documentacion/
 
 # Data files
 *.csv

@@ -76,6 +76,8 @@ class DatasetMetadata:
         self.scaler: StandardScaler = None
         self.cols_for_scaler: np.ndarray = None
         self.int_cols: np.ndarray = None
+        self.max_values: np.ndarray = None
+        self.min_values: np.ndarray = None
         self.columns: np.ndarray = None
         self.data: pd.DataFrame = None
 
@@ -145,7 +147,6 @@ def load_data(path: str, batch_size: int) -> tuple[DataLoader, DataLoader, DataL
     class_weights = torch.tensor([0.2, 0.8])
 
     data = clean_data(df, metadata)
-    # print(len(data))
     # class imbalance
 
     metadata.columns = data.drop(target_column, axis=1).columns
@@ -158,6 +159,10 @@ def load_data(path: str, batch_size: int) -> tuple[DataLoader, DataLoader, DataL
     col_mask = data.columns.isin(cols_for_mask)[:-1]
     metadata.cols_for_mask = col_mask
     metadata.data = data
+
+    # Max and min values for the columns
+    metadata.max_values = data.max().values[:-1]
+    metadata.min_values = data.min().values[:-1]
 
     dataset = LoanDataset(data, target_column)
 

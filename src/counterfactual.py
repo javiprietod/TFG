@@ -96,50 +96,69 @@ def distance(
         return (cost).sum()
 
 
-def unscale_instance(
-    instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False
-):
-    unscaled_cols = instance[metadata.cols_for_scaler].reshape(1, -1).to("cpu")
+def unscale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    cols_to_unscale = instance[metadata.cols_for_scaler].reshape(1, -1)
     mean = torch.tensor(metadata.scaler.mean_)
     std = torch.tensor(metadata.scaler.scale_)
-    unscaled_cols = unscaled_cols * std + mean
+    unscaled_cols = cols_to_unscale * std + mean
     if inplace:
-        instance[metadata.cols_for_scaler] = torch.tensor(unscaled_cols).to(device)
+        instance[metadata.cols_for_scaler] = torch.tensor(unscaled_cols, dtype=torch.float32).to(device)
         return instance
     else:
-        instance_clone = instance.clone().to(torch.float32)
-        instance_clone[metadata.cols_for_scaler] = torch.tensor(
-            unscaled_cols, dtype=torch.float32
-        )
+        instance_clone = instance.clone()
+        instance_clone[metadata.cols_for_scaler] = torch.tensor(unscaled_cols, dtype=torch.float32).to(device)
         return instance_clone
-
-
-def scale_instance(
-    instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False
-):
-    unscaled_cols = instance[metadata.cols_for_scaler].reshape(1, -1).to("cpu")
+    
+def scale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    cols_to_scale = instance[metadata.cols_for_scaler].reshape(1, -1)
     mean = torch.tensor(metadata.scaler.mean_)
     std = torch.tensor(metadata.scaler.scale_)
-    unscaled_cols = (unscaled_cols - mean) / std
+    scaled_cols = (cols_to_scale - mean) / std
     if inplace:
-        instance[metadata.cols_for_scaler] = torch.tensor(
-            unscaled_cols, dtype=torch.float32
-        ).to(device)
+        instance[metadata.cols_for_scaler] = torch.tensor(scaled_cols, dtype=torch.float32).to(device)
         return instance
     else:
-        instance_clone = instance.clone().to(torch.float32)
-        instance_clone[metadata.cols_for_scaler] = torch.tensor(
-            unscaled_cols, dtype=torch.float32
-        ).to(device)
+        instance_clone = instance.clone()
+        instance_clone[metadata.cols_for_scaler] = torch.tensor(scaled_cols, dtype=torch.float32).to(device)
         return instance_clone
-
-
+    
 def round_instance(instance: torch.Tensor, metadata: DatasetMetadata):
     unscaled_person = unscale_instance(instance, metadata)
-    unscaled_person[metadata.int_cols != 0] = torch.round(
-        unscaled_person[metadata.int_cols != 0]
-    )
+    unscaled_person[metadata.int_cols == 1] = torch.round(unscaled_person[metadata.int_cols == 1])
     person_new = scale_instance(unscaled_person, metadata)
+    return person_new
+
+
+def unscale_batch(batch: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    cols_to_unscale = torch.tensor(batch[:, metadata.cols_for_scaler], dtype=torch.float32)
+    mean = torch.tensor(metadata.scaler.mean_, dtype=torch.float32)
+    std = torch.tensor(metadata.scaler.scale_, dtype=torch.float32)
+    unscaled_cols = cols_to_unscale * std + mean
+    if inplace:
+        batch[:, metadata.cols_for_scaler] = torch.tensor(unscaled_cols, dtype=torch.float32).to(device)
+        return batch
+    else:
+        batch_clone = batch.clone()
+        batch_clone[:, metadata.cols_for_scaler] = torch.tensor(unscaled_cols, dtype=torch.float32).to(device)
+        return batch_clone
+    
+def scale_batch(batch: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    cols_to_scale = torch.tensor(batch[:, metadata.cols_for_scaler], dtype=torch.float32)
+    mean = torch.tensor(metadata.scaler.mean_, dtype=torch.float32)
+    std = torch.tensor(metadata.scaler.scale_, dtype=torch.float32)
+    scaled_cols = (cols_to_scale - mean) / std
+    if inplace:
+        batch[:, metadata.cols_for_scaler] = torch.tensor(scaled_cols, dtype=torch.float32).to(device)
+        return batch
+    else:
+        batch_clone = batch.clone()
+        batch_clone[:, metadata.cols_for_scaler] = torch.tensor(scaled_cols, dtype=torch.float32).to(device)
+        return batch_clone
+    
+def round_batch(batch: torch.Tensor, metadata: DatasetMetadata):
+    unscaled_person = unscale_batch(batch, metadata)
+    unscaled_person[metadata.int_cols == 1] = torch.round(unscaled_person[metadata.int_cols == 1])
+    person_new = scale_batch(unscaled_person, metadata)
     return person_new
 
 
@@ -218,36 +237,36 @@ def newton_op(
 
             # else:
 
-            # if (abs(thres_term) < 0.1) and first_time and state.epochs > 1:
-            #     ###################################################
-            #     ### Se estamos medio cerca de la solución, aplicamos reg_int y eliminamos reg_vars
-            #     ###################################################
-            #     if state.reg_vars:
-            #         change = (person - person_new).abs()
-            #         temp_weights = ((weights != 0) & (
-            #             change > 1e-2
-            #         )) * weights  # para mantener los numeros de weights
-            #         if state.reg_int:
-            #             cont_vars = (weights != 0) & ~metadata.int_cols.to(device)
-            #             changes_cont = cont_vars * change
-            #             temp_weights[torch.argmax(changes_cont)] = weights[
-            #                 torch.argmax(changes_cont)
-            #             ] # Esto es por si
-            #         if temp_weights.sum() == 0:
-            #             # Si no hay cambios lo suficientemente grandes, dejamos libre dos variable,
-            #             temp_weights[torch.argmax(change)] = weights[
-            #                 torch.argmax(change)
-            #             ]
+            if (abs(thres_term) < 0.1) and first_time and state.epochs > 1:
+                ###################################################
+                ### Se estamos medio cerca de la solución, aplicamos reg_int y eliminamos reg_vars
+                ###################################################
+                if state.reg_vars:
+                    change = (person - person_new).abs()
+                    temp_weights = ((weights != 0) & (
+                        change > 1e-2
+                    )) * weights  # para mantener los numeros de weights
+                    if state.reg_int:
+                        cont_vars = (weights != 0) & ~metadata.int_cols.to(device)
+                        changes_cont = cont_vars * change
+                        temp_weights[torch.argmax(changes_cont)] = weights[
+                            torch.argmax(changes_cont)
+                        ] # Esto es por si
+                    if temp_weights.sum() == 0:
+                        # Si no hay cambios lo suficientemente grandes, dejamos libre dos variable,
+                        temp_weights[torch.argmax(change)] = weights[
+                            torch.argmax(change)
+                        ]
 
-            #         weights = temp_weights
-            #         with torch.no_grad():
-            #             person_new[change <= 1e-2] = person[change <= 1e-2]
-            #         state.reg_vars = False
+                    weights = temp_weights
+                    with torch.no_grad():
+                        person_new[change <= 1e-2] = person[change <= 1e-2]
+                    state.reg_vars = False
 
-            #     if reg_int:
-            #         state.reg_int = True
+                if reg_int:
+                    state.reg_int = True
 
-            #     first_time = False
+                first_time = False
 
             ###################################################
             ### Definimos la función todas las veces para que tenga variables como statey weights que van cambiando
@@ -414,6 +433,51 @@ def minimality_check(
 
     d = distance(person, person_new, weights, state).item()
     sorted_b = b[b["distance"] <= d][b["output"] == 0].sort_values(by="distance")
+    return sorted_b
+
+def integer_minimality_check(
+    person: torch.Tensor,
+    person_new_int: torch.Tensor,
+    weights: torch.Tensor,
+    state: State,
+    model: LogisticModel,
+    noise=1e-3,
+    n_points=10000,
+    noise_int=2.5,
+):
+    w = weights & ~state.metadata.int_cols
+    noise_tensor = np.random.uniform(
+        -noise, noise, (n_points, person_new_int.shape[0])
+    ) * w.numpy()
+    rounded_noise_tensor = np.random.randint(
+        -noise_int, noise_int, (n_points, person_new_int.shape[0])
+    ) * (weights & state.metadata.int_cols).numpy()
+
+    points = scale_batch(
+        torch.tensor(
+            noise_tensor
+            + rounded_noise_tensor
+            + unscale_instance(person_new_int, state.metadata).detach().cpu().numpy().reshape(-1),
+            dtype=torch.float32,
+        ),
+        state.metadata,
+    ).to(device)
+
+    outputs = model(points)
+
+    # pandas dataset
+    points_unscaled = unscale_batch(points, state.metadata)
+    b = pd.DataFrame(points_unscaled, columns=state.metadata.columns)
+
+    # add person_new_int to the dataframe
+    b["output"] = torch.argmax(outputs, dim=1).detach().cpu().numpy()
+
+    distances = torch.tensor([distance(person, p, weights, state) for p in points])
+    b["distance"] = distances.detach().cpu().numpy()
+
+    d = distance(person, person_new_int, weights & ~state.metadata.int_cols, state).item()
+    sorted_b = b[b["distance"] < d][b["output"] == 0].sort_values(by="distance")
+
     return sorted_b
 
 

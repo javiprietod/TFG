@@ -361,16 +361,3 @@ def set_seed(seed: int) -> None:
 
     return None
 
-
-@torch.no_grad()
-def parameters_to_double(model: torch.nn.Module) -> None:
-    """
-    This function transforms the model parameters to double.
-
-    Args:
-        model: pytorch model.
-    """
-
-    # transform model to double
-    for param in model.parameters():
-        param.data = param.data.double()

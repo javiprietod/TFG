@@ -113,7 +113,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                         step=1,
                         key=f"input_{col}",
                     )
-                else:  # float64
+                else:  # float32
                     inputs[col] = st.number_input(
                         f"Enter {col}",
                         min_value=float(raw_df[col].min()),
@@ -136,7 +136,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
             # user_features = np.array([inputs[col] for col in cols]).reshape(1, -1)
 
             # Convert to DataFrame if needed
-            person = clean_instance(inputs, metadata).to(torch.double)
+            person = clean_instance(inputs, metadata)
             # weights are the columns that are changeable
             list_weights = [
                 1 if changeable.get(col, False) else 0 for col in changeable

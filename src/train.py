@@ -16,7 +16,7 @@ importlib.reload(src.models)
 importlib.reload(src.evaluate)
 
 from src.train_functions import train_step, val_step
-from src.utils import load_data, set_seed, save_model, parameters_to_double
+from src.utils import load_data, set_seed, save_model
 from src.models import LogisticModel
 from src.evaluate import main as main_ev
 
@@ -60,7 +60,6 @@ def main(path: str, model_name: str = None) -> None:
         inputs.shape[1],
         hidden_sizes,
     ).to(device)
-    parameters_to_double(model)
 
     # define loss and optimizer
     loss: torch.nn.Module = torch.nn.CrossEntropyLoss(weight=class_weights)

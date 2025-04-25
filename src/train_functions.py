@@ -34,12 +34,12 @@ def train_step(
     losses: list[float] = []
     model.train()
 
-    for (user, target) in train_data:
+    for user, target in train_data:
         user = user.to(device)
         target = target.to(device).long()
 
         optimizer.zero_grad()
-        
+
         outputs = model(user)
         loss_value = loss(outputs.float(), target)
 
@@ -53,11 +53,9 @@ def train_step(
 
     print(f"Epoch {epoch} - train accuracy: {correct / elements}")
 
-    
     # write on tensorboard
     writer.add_scalar("train/accuracy", correct / elements, epoch)
     writer.add_scalar("train/loss", np.mean(losses), epoch)
-    
 
 
 def val_step(
@@ -86,7 +84,7 @@ def val_step(
         elements: int = 0
         losses: list[float] = []
 
-        for (user, target) in val_data:
+        for user, target in val_data:
             user = user.to(device)
             target = target.to(device).long()
 
@@ -96,11 +94,12 @@ def val_step(
             elements += target.shape[0]
             outputs = torch.argmax(outputs, dim=1)
             correct += torch.sum(outputs == target).item()
-        
+
         # write on tensorboard
         print(f"Epoch {epoch} - val accuracy: {correct / elements}")
         writer.add_scalar("val/accuracy", correct / elements, epoch)
         writer.add_scalar("val/loss", np.mean(losses), epoch)
+
 
 def test_step(
     model: torch.nn.Module,
@@ -114,7 +113,7 @@ def test_step(
         model: pytorch model.
         val_data: dataloader of test data.
         device: device of model.
-        
+
     Returns:
         average accuracy.
     """
@@ -125,7 +124,7 @@ def test_step(
         all_targets = []
         model.eval()
 
-        for (user, target) in test_data:
+        for user, target in test_data:
             user = user.to(device)
             target = target.to(device)
 
@@ -139,10 +138,12 @@ def test_step(
 
             elements += target.shape[0]
             correct += (preds == target).sum().item()
-        
+
         # Calculate metrics
         accuracy = correct / elements
-        f1 = f1_score(all_targets, all_preds, average='macro')  # You can change to 'macro' or 'micro' if needed
+        f1 = f1_score(
+            all_targets, all_preds, average="macro"
+        )  # You can change to 'macro' or 'micro' if needed
         conf_matrix = confusion_matrix(all_targets, all_preds)
-        
+
         return accuracy, f1, conf_matrix

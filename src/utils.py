@@ -1,4 +1,3 @@
-
 # deep learning libraries
 import torch
 from torch.jit import RecursiveScriptModule
@@ -12,7 +11,8 @@ import os
 import random
 import yaml
 
-# TODO : Change doc strings 
+
+# TODO : Change doc strings
 class LoanDataset(Dataset):
     """
     This class is the dataset loading the data.
@@ -52,7 +52,7 @@ class LoanDataset(Dataset):
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
         """
-        
+
         This method returns an element from the dataset based on the
         index. It only has to return the prices.
 
@@ -65,24 +65,32 @@ class LoanDataset(Dataset):
             current values. Start to collect those in the index
                 self.sequence. Dimensions: [24].
         """
-        
+
         return self.data[index], self.targets[index]
-    
+
+
 class DatasetMetadata:
     def __init__(self):
         self.path: str = None
+        self.columns: np.ndarray = None  # original columns
+        self.id_column: str = None
+        self.target_column: str = None
         self.batch_size: int = None
         self.cols_for_mask: np.ndarray = None
         self.scaler: StandardScaler = None
-        self.cols_for_scaler: np.ndarray = None
-        self.int_cols: np.ndarray = None
-        self.max_values: np.ndarray = None
-        self.min_values: np.ndarray = None
-        self.columns: np.ndarray = None
+        self.cols_for_scaler: torch.Tensor = None
+        self.cols_for_scaler_names: np.ndarray = None
+        self.obj_cols: dict[str, list[str]] = None  # values in categorical columns
+        self.int_cols: torch.Tensor = None
+        self.max_values: torch.Tensor = None
+        self.min_values: torch.Tensor = None
         self.data: pd.DataFrame = None
+        self.threshold: float = 0.5
 
 
-def clean_data(df: pd.DataFrame, metadata: DatasetMetadata) -> pd.DataFrame:
+def clean_data(
+    df: pd.DataFrame, metadata: DatasetMetadata, scale: True
+) -> pd.DataFrame:
     """
     This function cleans the data by removing the rows with missing values.
 
@@ -95,12 +103,8 @@ def clean_data(df: pd.DataFrame, metadata: DatasetMetadata) -> pd.DataFrame:
 
     # drop missing values
     df = df.dropna()
-    # filter for the columns that have different values for each row
-    # take the first column of the filtered columns
-    # This can change from dataset to dataset but it is a good starting point
-    id_column = df.loc[:, df.nunique() == len(df)].columns[0]
-    
-    df = df.drop(id_column, axis=1)
+
+    df = df.drop(metadata.id_column, axis=1) if metadata.id_column else df
 
     # drop columns that only have one value
     df = df.loc[:, df.nunique() > 1]
@@ -110,27 +114,110 @@ def clean_data(df: pd.DataFrame, metadata: DatasetMetadata) -> pd.DataFrame:
 
     # scale the numerical columns
     scaler = StandardScaler()
-    target_column = df.loc[:, df.nunique() == 2].select_dtypes(include=[int]).columns[-1]
-    int_cols = df.drop(target_column, axis=1).select_dtypes(include=[int]).columns
-    num_columns = df.select_dtypes(exclude=['object']).columns.drop(target_column)
+
+    int_cols = (
+        df.drop(metadata.target_column, axis=1).select_dtypes(include=[int]).columns
+    )
+    num_columns = df.select_dtypes(exclude=["object"]).columns.drop(
+        metadata.target_column
+    )
     df[num_columns] = scaler.fit_transform(df[num_columns])
+    metadata.cols_for_scaler_names = num_columns
     # one hot encode the categorical columns
     obj_columns = df.select_dtypes(include=[object]).columns
 
+    metadata.obj_cols = {col: df[col].unique() for col in obj_columns}
+
     df_encoded = pd.get_dummies(df, columns=obj_columns, drop_first=True)
-    
+
     bool_cols = df_encoded.select_dtypes(include=[bool]).columns
 
     df_encoded[bool_cols] = df_encoded[bool_cols].astype(int)
-    
+
     metadata.scaler = scaler
-    metadata.cols_for_scaler = df_encoded.drop(target_column, axis=1).columns.isin(num_columns)
-    metadata.int_cols = df_encoded.drop(target_column, axis=1).columns.isin(int_cols)
+    metadata.cols_for_scaler = torch.tensor(
+        df_encoded.drop(metadata.target_column, axis=1).columns.isin(num_columns)
+    )
+    metadata.int_cols = torch.tensor(
+        df_encoded.drop(metadata.target_column, axis=1).columns.isin(int_cols)
+    )
 
     return df_encoded
 
-def load_data(path: str, batch_size: int) -> tuple[DataLoader, DataLoader, DataLoader, torch.Tensor, DatasetMetadata]:
-    
+
+def transform_onehot(raw_instance, original_columns, final_columns):
+    encoded_instance = {col: 0 for col in final_columns}
+
+    # Handle numerical columns (those in both original and final directly)
+    for col in original_columns:
+        if col in final_columns and col in raw_instance:
+            encoded_instance[col] = raw_instance[col]
+
+    # Handle one-hot encoded fields
+    for col in final_columns:
+        if "_" in col:
+            base_col, val = col.split("_", 1)
+            if base_col in raw_instance:
+                raw_val = str(raw_instance[base_col])
+                if raw_val == val:
+                    encoded_instance[col] = 1
+
+    return torch.tensor(list(encoded_instance.values()))
+
+
+def transform_onehot_inverse(
+    df: pd.DataFrame, metadata: DatasetMetadata
+) -> pd.DataFrame:
+    result = df.copy()
+    restored_cols = {}
+
+    for col, values in metadata.obj_cols.items():
+        # Get the dummy column names
+        dummy_cols = [c for c in df.columns if c.startswith(f"{col}_")]
+
+        # Create a column to store the restored category
+        def get_original_value(row):
+            for i, dummy_col in enumerate(dummy_cols):
+                if row.get(dummy_col, 0) == 1:
+                    return values[i + 1]  # Match found
+            return values[0]  # If none are 1, it's the dropped first value
+
+        # Optionally, drop the dummy columns
+        result = result.drop(columns=[col for col in dummy_cols if col in df.columns])
+        result[col] = df[dummy_cols].apply(get_original_value, axis=1)
+
+    # Add the restored columns
+    for col, series in restored_cols.items():
+        result[col] = series
+    return result
+
+
+def clean_instance(instance: dict, metadata: DatasetMetadata) -> torch.Tensor:
+    """
+    This function cleans the data by removing the rows with missing values.
+
+    Args:
+        df: dataframe with the data.
+
+    Returns:
+        dataframe without missing values.
+    """
+
+    instance = transform_onehot(instance, instance.keys(), metadata.columns)
+
+    unscaled_cols = metadata.scaler.transform(
+        instance[metadata.cols_for_scaler].reshape(1, -1)
+    )
+    instance[metadata.cols_for_scaler] = torch.tensor(
+        unscaled_cols, dtype=torch.float32
+    )
+
+    return instance
+
+
+def load_data(
+    path: str, index: int = None, batch_size: int = 1024, get_sample: bool = False
+) -> tuple[DataLoader, DataLoader, DataLoader, torch.Tensor, DatasetMetadata]:
     set_seed(42)
 
     df = pd.read_csv(path)
@@ -139,40 +226,74 @@ def load_data(path: str, batch_size: int) -> tuple[DataLoader, DataLoader, DataL
 
     metadata.path = path
     metadata.batch_size = batch_size
+    with open("datasets.yaml", "r") as file:
+        datasets = yaml.safe_load(file)[metadata.path]
+
+    id_column = datasets["id_column"]
+    target_column = datasets["target_column"]
 
     # target column
     # search for the column that has only 1 and 0
-    target_column = df.loc[:, df.nunique() == 2].select_dtypes(include=[int]).columns[0]
+    metadata.id_column = id_column
+    metadata.target_column = target_column
     # class_weights = torch.tensor(list(df[target_column].value_counts(normalize=True))[::-1])
     class_weights = torch.tensor([0.2, 0.8])
 
-    data = clean_data(df, metadata)
-    # class imbalance
+    data = clean_data(df, metadata, target_column)
+
+    if get_sample:
+        distinct_outputs = sorted(data[target_column].unique())
+        sample0 = data[data[target_column] == distinct_outputs[0]].iloc[0:1]
+        sample1 = data[data[target_column] == distinct_outputs[1]].iloc[0:1]
+        samples = pd.concat([sample0, sample1])
+        samples.reset_index(drop=True, inplace=True)
+    elif index is not None:
+        data = data.iloc[index : index + 1]
 
     metadata.columns = data.drop(target_column, axis=1).columns
 
     with open("datasets.yaml", "r") as file:
         datasets = yaml.safe_load(file)
 
-    cols_for_mask = datasets[path]
+    cols_for_mask = datasets[path]["weights"]
     # create a mask for the columns
-    col_mask = data.columns.isin(cols_for_mask)[:-1]
+    col_mask = data.drop(target_column, axis=1).columns.isin(cols_for_mask)
     metadata.cols_for_mask = col_mask
-    metadata.data = data
 
     # Max and min values for the columns
-    metadata.max_values = data.max().values[:-1]
-    metadata.min_values = data.min().values[:-1]
+    metadata.max_values = torch.tensor(
+        data.drop(target_column, axis=1).max().values, dtype=torch.float32
+    )
+    metadata.min_values = torch.tensor(
+        data.drop(target_column, axis=1).min().values, dtype=torch.float32
+    )
 
-    dataset = LoanDataset(data, target_column)
+    if get_sample:
+        return samples, metadata
 
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [0.6, 0.2, 0.2], generator=torch.Generator().manual_seed(42))
+    elif index is None:
+        dataset = LoanDataset(data, target_column)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+        train_dataset, val_dataset, test_dataset = random_split(
+            dataset, [0.6, 0.2, 0.2], generator=torch.Generator().manual_seed(42)
+        )
 
-    return train_dataloader, val_dataloader, test_dataloader, class_weights, metadata
+        train_dataloader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True
+        )
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+        test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+        return (
+            train_dataloader,
+            val_dataloader,
+            test_dataloader,
+            class_weights,
+            metadata,
+        )
+
+    else:
+        return torch.tensor(data.loc[0].values), metadata
 
 
 def save_model(model: torch.nn.Module, name: str) -> None:
@@ -239,6 +360,7 @@ def set_seed(seed: int) -> None:
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     return None
+
 
 @torch.no_grad()
 def parameters_to_double(model: torch.nn.Module) -> None:

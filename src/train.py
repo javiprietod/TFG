@@ -36,11 +36,11 @@ def main(path: str, model_name: str = None) -> None:
     with open("train.yaml", "r") as f:
         config = yaml.safe_load(f)
     name: str = config["name"] if model_name is None else model_name
-    epochs: int = config["epochs"]
-    lr: float = config["lr"]
-    batch_size: int = config["batch_size"]
-    hidden_sizes: tuple[int, ...] = config["hidden_sizes"]
-    weight_decay: float = config["weight_decay"]
+    epochs: int = int(config["epochs"])
+    lr: float = float(config["lr"])
+    batch_size: int = int(config["batch_size"])
+    hidden_sizes: tuple[int, ...] = tuple(config["hidden_sizes"])
+    weight_decay: float = float(config["weight_decay"])
 
     # empty nohup file
     open("nohup.out", "w").close()
@@ -64,7 +64,7 @@ def main(path: str, model_name: str = None) -> None:
     # define loss and optimizer
     loss: torch.nn.Module = torch.nn.CrossEntropyLoss(weight=class_weights)
     # loss: torch.nn.Module = torch.nn.CrossEntropyLoss()
-    optimizer: torch.optim.Optimizer = torch.optim.AdamW(
+    optimizer: torch.optim.Optimizer = torch.optim.Adam(
         model.parameters(), lr=lr, weight_decay=weight_decay
     )
 

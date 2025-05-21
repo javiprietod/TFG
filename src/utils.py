@@ -73,6 +73,7 @@ class DatasetMetadata:
     def __init__(self):
         self.path: str = None
         self.columns: np.ndarray = None  # original columns
+        self.bad_class: str = None
         self.id_column: str = None
         self.target_column: str = None
         self.batch_size: int = None
@@ -85,7 +86,7 @@ class DatasetMetadata:
         self.max_values: torch.Tensor = None
         self.min_values: torch.Tensor = None
         self.data: pd.DataFrame = None
-        self.threshold: float = 0.5
+        self.threshold: float = 0.5 + 1e-5
 
 
 def clean_data(

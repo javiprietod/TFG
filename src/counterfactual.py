@@ -1,20 +1,23 @@
 import importlib
 import src.utils
 import src.models
+import src.train
 
 importlib.reload(src.utils)
 importlib.reload(src.models)
+importlib.reload(src.train)
 
 from src.utils import load_data, load_model, DatasetMetadata
+from src.train import main as main_train
 import torch
 import pandas as pd
 import numpy as np
-import sympy as sp
+# import sympy as sp
 
 # str to sympy
-from sympy.parsing.sympy_parser import parse_expr
+# from sympy.parsing.sympy_parser import parse_expr
 
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 from src.models import LogisticModel
 import warnings
 
@@ -42,6 +45,7 @@ def distance(
     new: torch.Tensor,
     weights: torch.Tensor,
     state: State = None,
+    with_sum: bool = True,
 ):
     # clamped_new = torch.clamp(new, scale_instance(state.metadata.min_values, state.metadata), scale_instance(state.metadata.max_values, state.metadata))
     cost = (original - new) ** 2 * weights
@@ -63,37 +67,40 @@ def distance(
         state.metadata.min_values.to(device) - new, torch.zeros_like(new)
     )  # max(a-x, 0)
     """
+    if state:
+        if torch.any(original != new) and state.reg_vars:
+            epsilon = 30  # TODO: Pensar si esto es como la temperatura
 
-    if torch.any(original != new) and state.reg_vars:
-        epsilon = 30  # TODO: Pensar si esto es como la temperatura
-
-        cost += sum(
-            [
-                10 * (1 - torch.exp(-((o - n) ** 2) * epsilon))
-                for o, n in zip(original, new)
-            ]
-        )
-        # n = original.numel()
-        # suma = (original - new).abs().sum() + n * epsilon
-        # cost -= sum([((o - n).abs() + epsilon)/ suma * torch.log(((o - n).abs() + epsilon)/ suma) for o, n in zip(original, new)])
-
-    if state.reg_int:
-        # Calculate the distance with regularization
-        # return ((original - new) ** 2 * weights +
-        #         2 - (1 + torch.cos(2 * torch.pi * (new * state.dx_scaled + state.mean_scaled) * state.metadata.int_cols)) ** 3)[weights != 0].sum()
-        return (
-            cost
-            + (
-                torch.tan(
-                    torch.pi
-                    * (new * state.dx_scaled + state.mean_scaled)
-                    * state.metadata.int_cols.to(device)
-                )
+            cost += sum(
+                [
+                    10 * (1 - torch.exp(-((o - n) ** 2) * epsilon))
+                    for o, n in zip(original, new)
+                ]
             )
-            ** 2
-        )[weights != 0].sum()
-    else:
-        return (cost).sum()
+            # n = original.numel()
+            # suma = (original - new).abs().sum() + n * epsilon
+            # cost -= sum([((o - n).abs() + epsilon)/ suma * torch.log(((o - n).abs() + epsilon)/ suma) for o, n in zip(original, new)])
+
+        if state.reg_int:
+            # Calculate the distance with regularization
+
+            # if state.epochs < 5:
+
+            #     cost += state.epochs * (2 - (1 + torch.cos(2 * torch.pi * (new * state.dx_scaled + state.mean_scaled) * state.metadata.int_cols)))
+            
+            # else:
+            cost += (
+                + (
+                    torch.tan(
+                        torch.pi
+                        * (new * state.dx_scaled + state.mean_scaled)
+                        * state.metadata.int_cols.to(device)
+                    )
+                )
+                ** 2
+            )
+
+    return (cost).sum() if with_sum else cost.sum(dim=1)
 
 
 def unscale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
@@ -211,129 +218,132 @@ def newton_op(
         state.reg_clamp = reg_clamp
         first_time = True
         continue_condition = True
+        original_weights = weights.clone()
 
         while continue_condition and state.epochs < state.max_epochs:
             print("Epoch:", state.epochs) if print_ else None
-            # if (weights != 0).sum() == 1:
-            #     ###################################################
-            #     ### Si solo tenemos una variables activa que cambiar
-            #     ###################################################
-            #     derivative = torch.autograd.grad(
-            #         model(person_new.unsqueeze(0))[0][0],
-            #         person_new,
-            #         create_graph=True,
-            #         allow_unused=True,
-            #     )[0][weights != 0]
-            #     delta = torch.cat(
-            #         (
-            #             (
-            #                 model(person_new.unsqueeze(0))[0][0]
-            #                 - state.metadata.threshold
-            #             )/ derivative,
-            #             torch.tensor([0]).to(device),
-            #         ),
-            #         dim=0,
-            #     )
-
-            # else:
-
-            if (abs(thres_term) < 0.1) and first_time and state.epochs > 1:
+            if (weights != 0).sum() == 1:
                 ###################################################
-                ### Se estamos medio cerca de la solución, aplicamos reg_int y eliminamos reg_vars
+                ### Si solo tenemos una variables activa que cambiar
                 ###################################################
-                if state.reg_vars:
-                    change = (person - person_new).abs()
-                    temp_weights = ((weights != 0) & (
-                        change > 1e-2
-                    )) * weights  # para mantener los numeros de weights
-                    if state.reg_int:
-                        cont_vars = (weights != 0) & ~metadata.int_cols.to(device)
-                        changes_cont = cont_vars * change
-                        temp_weights[torch.argmax(changes_cont)] = weights[
-                            torch.argmax(changes_cont)
-                        ] # Esto es por si
-                    if temp_weights.sum() == 0:
-                        # Si no hay cambios lo suficientemente grandes, dejamos libre dos variable,
-                        temp_weights[torch.argmax(change)] = weights[
-                            torch.argmax(change)
-                        ]
-
-                    weights = temp_weights
-                    with torch.no_grad():
-                        person_new[change <= 1e-2] = person[change <= 1e-2]
-                    state.reg_vars = False
-
-                if reg_int:
-                    state.reg_int = True
-
-                first_time = False
-
-            ###################################################
-            ### Definimos la función todas las veces para que tenga variables como statey weights que van cambiando
-            ###################################################
-            def fpl_func(x: torch.Tensor, l: torch.Tensor):
-                x = x.to(device)
-                out = model(x.unsqueeze(0))[0][0]
-                cost_func = torch.autograd.grad(
-                    distance(person, x, weights, state),
-                    x,
+                derivative = torch.autograd.grad(
+                    model(person_new.unsqueeze(0))[0][0],
+                    person_new,
                     create_graph=True,
                     allow_unused=True,
                 )[0][weights != 0]
-                restriction = torch.autograd.grad(
-                    out, x, create_graph=True, allow_unused=True
-                )[0][weights != 0]
-                l_derivative = (metadata.threshold - out).unsqueeze(0)
-                return torch.cat((cost_func - l * restriction, l_derivative))
-
-            fpl = fpl_func(person_new, l)
-            jac_tuple = torch.autograd.functional.jacobian(fpl_func, (person_new, l))
-
-            if torch.linalg.norm(jac_tuple[1], ord=float("inf")) < delta_threshold:
-                ###################################################
-                ### Problemas con la hessiana
-                ###################################################
-                # calcula Delta = (H')^(-1) F
-                # si Delta < epsilon:
-                #     Delta = beta* grad(M)/|grad(M)|
-
-                # delta = torch.cat(
-                #     (
-                #         torch.linalg.inv(jac_tuple[0][:-1, weights != 0])
-                #         @ fpl[:-1],
-                #         torch.tensor([0]).to(device),
-                #     ),
-                #     dim=0,
-                # )
-                # if torch.linalg.norm(delta).item() < 1e100: # ponemos este numero tan alto porque lo otro no funciona
-                factor = 1
-                # ponderamos salto a como de lejos estemos
-                delta = (
-                    # thres_term
-                    # * factor # scalado de la distancia al umbral
-                    # *
-                    torch.cat(
+                delta = torch.cat(
+                    (
                         (
-                            jac_tuple[0][-1, weights != 0]
-                            / torch.linalg.norm(jac_tuple[1]),
-                            torch.tensor([0]).to(device),
-                        ),
-                        dim=0,
-                    )
+                            model(person_new.unsqueeze(0))[0][0]
+                            - state.metadata.threshold
+                        )/ derivative,
+                        torch.tensor([0]).to(device),
+                    ),
+                    dim=0,
                 )
-                print(
-                    f"Jacobian is too small, using gradient descent: {torch.linalg.norm(jac_tuple[1])}"
-                ) if print_ else None
-                # else:
-                #     print(
-                #         f"Using subhessian: {torch.linalg.inv(jac_tuple[0][:-1, weights != 0]) @ fpl[:-1]}"
-                #     ) if print_ else None
+
             else:
-                jac = torch.cat(
-                    (jac_tuple[0][:, weights != 0], jac_tuple[1].unsqueeze(-1)),
-                    dim=1,
-                )
-                delta = torch.linalg.inv(jac) @ fpl
+
+                if (abs(thres_term) < 0.1) and first_time and state.epochs > 1:
+                    ###################################################
+                    ### Se estamos medio cerca de la solución, aplicamos reg_int y eliminamos reg_vars
+                    ###################################################
+                    if state.reg_vars:
+                        change = (person - person_new).abs()
+                        temp_weights = ((weights != 0) & (
+                            change > 1e-2
+                        )) * weights  # para mantener los numeros de weights
+                        if state.reg_int:
+                            cont_vars = (weights != 0) & ~metadata.int_cols.to(device)
+                            changes_cont = cont_vars * change
+                            temp_weights[torch.argmax(changes_cont)] = weights[
+                                torch.argmax(changes_cont)
+                            ] # Esto es por si
+                        if temp_weights.sum() == 0:
+                            # Si no hay cambios lo suficientemente grandes, dejamos libre dos variable,
+                            temp_weights[torch.argmax(change)] = weights[
+                                torch.argmax(change)
+                            ]
+
+                        weights = temp_weights
+                        with torch.no_grad():
+                            person_new[change <= 1e-2] = person[change <= 1e-2]
+                        state.reg_vars = False
+
+                    if reg_int:
+                        state.reg_int = True
+                        state.epochs = 0
+
+                    first_time = False
+
+                ###################################################
+                ### Definimos la función todas las veces para que tenga variables como statey weights que van cambiando
+                ###################################################
+                def fpl_func(x: torch.Tensor, l: torch.Tensor):
+                    x = x.to(device)
+                    out = model(x.unsqueeze(0))[0][0]
+                    cost_func = torch.autograd.grad(
+                        distance(person, x, weights, state),
+                        x,
+                        create_graph=True,
+                        allow_unused=True,
+                    )[0][weights != 0]
+                    restriction = torch.autograd.grad(
+                        out, x, create_graph=True, allow_unused=True
+                    )[0][weights != 0]
+                    l_derivative = (metadata.threshold - out).unsqueeze(0)
+                    return torch.cat((cost_func - l * restriction, l_derivative))
+
+                fpl = fpl_func(person_new, l)
+                jac_tuple = torch.autograd.functional.jacobian(fpl_func, (person_new, l))
+
+                if torch.linalg.norm(jac_tuple[1], ord=float("inf")) < delta_threshold:
+                    ###################################################
+                    ### Problemas con la hessiana
+                    ###################################################
+                    # calcula Delta = (H')^(-1) F
+                    # si Delta < epsilon:
+                    #     Delta = beta* grad(M)/|grad(M)|
+                    # factor = 1
+                    # delta = thres_term * factor * torch.cat(
+                    #     (
+                    #         torch.linalg.inv(jac_tuple[0][:-1, weights != 0])
+                    #         @ fpl[:-1],
+                    #         torch.tensor([0]).to(device),
+                    #     ),
+                    #     dim=0,
+                    # )
+                    # if torch.linalg.norm(delta).item() < 0.1: # ponemos este numero tan alto porque lo otro no funciona
+                    factor = 1
+                    # ponderamos salto a como de lejos estemos
+                    delta = (
+                        thres_term
+                        * factor # scalado de la distancia al umbral
+                        *
+                        torch.cat(
+                            (
+                                jac_tuple[0][-1, weights != 0]
+                                / torch.linalg.norm(jac_tuple[1]),
+                                torch.tensor([0]).to(device),
+                            ),
+                            dim=0,
+                        )
+                    )
+                    print(
+                        f"Jacobian is too small, using gradient descent: {torch.linalg.norm(jac_tuple[1])}"
+                    ) if print_ else None
+                    # else:
+                    #     print(
+                    #         f"Using subhessian: {torch.linalg.inv(jac_tuple[0][:-1, weights != 0]) @ fpl[:-1]}"
+                    #     ) if print_ else None
+                    #     print('Subhessiana')
+                else:
+                    jac = torch.cat(
+                        (jac_tuple[0][:, weights != 0], jac_tuple[1].unsqueeze(-1)),
+                        dim=1,
+                    )
+                    delta = torch.linalg.inv(jac) @ fpl
 
             ###################################################
             ### Actualizamos con no_grad porque las operaciones inplace con autograd no funcionan
@@ -343,21 +353,27 @@ def newton_op(
                 l -= delta[-1] * lr
             # person_new = torch.clamp(person_new, metadata.min_values, metadata.max_values)
 
-            output_new = model(person_new.unsqueeze(0))
-            thres_term = (metadata.threshold - output_new[0][0]).item()
 
             ###################################################
             ### Clamping
             ###################################################
             if abs(thres_term) < 0.1 and state.epochs > 1 and state.reg_clamp:
-                # inbounds = torch.clamp(person_new, metadata.min_values.to(device), metadata.max_values.to(device)) == person_new
-                # weights = weights & inbounds
+                inbounds = torch.clamp(person_new, metadata.min_values.to(device), metadata.max_values.to(device)) == person_new
+                # print(~inbounds) if inbounds.all() == False else None
+                # weights = ((original_weights != 0) & inbounds) * original_weights
+                weights = ((weights != 0) & inbounds) * weights
+                if weights.sum() == 0:
+                    # Si no hay cambios lo suficientemente grandes, dejamos libre dos variable,
+                    weights[metadata.int_cols] = original_weights[metadata.int_cols]
+                    
                 person_new = torch.clamp(
                     person_new,
                     metadata.min_values.to(device),
                     metadata.max_values.to(device),
                 )
 
+            output_new = model(person_new.unsqueeze(0))
+            thres_term = (metadata.threshold - output_new[0][0]).item()
             state.epochs += 1
 
             if print_:
@@ -378,9 +394,10 @@ def newton_op(
             ###################################################
             ### Actualizamos la condición de salida
             ###################################################
-            continue_condition = abs(thres_term) > 1e-15 or torch.linalg.norm(
+            # abs(thres_term) > 1e-15 or 
+            continue_condition = (thres_term > 0) or torch.linalg.norm(
                 delta
-            ) > 1e-7 * torch.linalg.norm(torch.cat((person_new, l.unsqueeze(0))))
+            ) > 1e-6 * torch.linalg.norm(torch.cat((person_new, l.unsqueeze(0))))
             if not continue_condition and state.reg_int:
                 ###################################################
                 ### Si ya salimos pero estabamos aplicando reg_int,
@@ -482,15 +499,16 @@ def integer_minimality_check(
 
 
 if __name__ == "__main__":
-    filename = "data/Loan_default.csv"
-    model_name = "model_small"
+    filename = "data/adult_income_train.csv"
+    model_name = "model_adult_income_train"
 
     person: torch.Tensor
     metadata: DatasetMetadata
     person, metadata = load_data(filename, index=0)
 
     # define model
-    model: LogisticModel = load_model(model_name).to(device)
+    model: LogisticModel = main_train(filename, model_name)
+    # model: LogisticModel = load_model(model_name).to(device)
 
     outputs = model(person).argmax(dim=1)
     if outputs == 0:
@@ -498,3 +516,5 @@ if __name__ == "__main__":
         exit(0)
 
     weights = torch.tensor(metadata.cols_for_mask, dtype=torch.int).to(device)
+
+    

@@ -56,7 +56,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
 
     # Read dataset for reference
     raw_df = pd.read_csv(metadata.path)
-    raw_df = raw_df.drop(columns=[metadata.target_column, metadata.id_column])
+    raw_df = raw_df.drop(columns=[metadata.target_column, metadata.id_column], errors="ignore")
     cols = raw_df.columns
     samples[metadata.cols_for_scaler_names] = metadata.scaler.inverse_transform(
         samples[metadata.cols_for_scaler_names]
@@ -158,8 +158,10 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                     person,
                     metadata,
                     weights,
-                    reg_int=True,
-                    reg_vars=True,
+                    delta_threshold=0.04,
+                    reg_int=False,
+                    reg_vars=False,
+                    reg_clamp=True,
                     print_=True,
                 )
 
@@ -188,10 +190,12 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
 
 
 if __name__ == "__main__":
-    filename = "data/Loan_default.csv"
-    model_name = "model_small"
-    model = load_model(model_name).to(device)
-    # model = main_train(filename, model_name)
+    filename = "data/german_processed.csv"
+    model_name = "model_german"
+    model = main_train(filename, model_name)
+    # model = load_model(model_name).to(device)
+    # load a pickle file
+    # model = joblib.load(open("models/german_model.joblib", "rb"))
 
     person: torch.Tensor
     metadata: DatasetMetadata

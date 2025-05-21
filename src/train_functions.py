@@ -35,7 +35,7 @@ def train_step(
     model.train()
 
     for user, target in train_data:
-        user = user.to(device)
+        user = user.to(device).float()
         target = target.to(device).long()
 
         optimizer.zero_grad()
@@ -85,7 +85,7 @@ def val_step(
         losses: list[float] = []
 
         for user, target in val_data:
-            user = user.to(device)
+            user = user.to(device).float()
             target = target.to(device).long()
 
             outputs = model(user)
@@ -125,7 +125,7 @@ def test_step(
         model.eval()
 
         for user, target in test_data:
-            user = user.to(device)
+            user = user.to(device).float()
             target = target.to(device)
 
             outputs = model(user)

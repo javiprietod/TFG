@@ -1,6 +1,9 @@
 # Data folder
 data/
-documentacion/
+documentacion/*
+!/documentacion/tfg.tex
+!/documentacion/tfg.pdf
+!/documentacion/images/
 
 # Data files
 *.csv

@@ -1,20 +1,20 @@
 data/Loan_default.csv: {
     id_column: "LoanID",
     target_column: "Default",
-    bad_class: 1,
-    weights: ["Income", "CreditScore", "MonthsEmployed", "NumCreditLines", "InterestRate", "LoanTerm", "DTIRatio", "HasMortgage_Yes", "HasDependents_Yes"] # "LoanAmount"
+    good_class: 0,
+    weights: ["Income",  "LoanAmount", "CreditScore", "MonthsEmployed", "NumCreditLines", "InterestRate", "LoanTerm", "DTIRatio"] #, "HasMortgage_Yes", "HasDependents_Yes"]
 }
 data/Loan_default_2_clean.csv: {
     id_column: "ID",
     target_column: "Status",
-    bad_class: 1,
+    good_class: 0,
     weights: ["income", "dtir1", "loan_amount", "Credit_Score", "LTV"]
 }
 
 data/german_processed.csv: {
     id_column: "",
     target_column: "GoodCustomer (label)",
-    bad_class: 1,
+    good_class: 0,
     weights: ["Age", "Credit"]
 }
   

@@ -73,10 +73,11 @@ class DatasetMetadata:
     def __init__(self):
         self.path: str = None
         self.columns: np.ndarray = None  # original columns
-        self.bad_class: str = None
+        self.good_class: str = None
         self.id_column: str = None
         self.target_column: str = None
         self.batch_size: int = None
+        self.changeable_col_names: list[str] = None
         self.cols_for_mask: np.ndarray = None
         self.scaler: StandardScaler = None
         self.cols_for_scaler: torch.Tensor = None
@@ -237,6 +238,7 @@ def load_data(
     # search for the column that has only 1 and 0
     metadata.id_column = id_column
     metadata.target_column = target_column
+    metadata.good_class = datasets["good_class"]
     # class_weights = torch.tensor(list(df[target_column].value_counts(normalize=True))[::-1])
     class_weights = torch.tensor([0.2, 0.8])
 
@@ -257,6 +259,7 @@ def load_data(
         datasets = yaml.safe_load(file)
 
     cols_for_mask = datasets[path]["weights"]
+    metadata.changeable_col_names = cols_for_mask
     # create a mask for the columns
     col_mask = data.drop(target_column, axis=1).columns.isin(cols_for_mask)
     metadata.cols_for_mask = col_mask

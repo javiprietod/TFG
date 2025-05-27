@@ -21,8 +21,7 @@ from src.counterfactual import unscale_instance, scale_instance, newton_op
 from src.train import main as main_train
 import torch
 import pandas as pd
-import numpy as np
-import sympy as sp
+import math
 
 # str to sympy
 from src.models import LogisticModel
@@ -65,6 +64,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
 
     inputs = {}
     changeable = {}
+    weights_slider = {}
 
     # ------------------------------------------------------------------
     # 1️⃣  Prefill buttons
@@ -72,11 +72,11 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
     col_pos, col_neg = st.columns(2)
     with col_pos:
         if st.button("🔵 Load positive sample"):
-            write_sample_to_state(samples.iloc[0], cols, changeable={})
+            write_sample_to_state(samples.iloc[metadata.good_class], cols, changeable={})
             st.rerun()
     with col_neg:
         if st.button("🔴 Load negative sample"):
-            write_sample_to_state(samples.iloc[1], cols, changeable={})
+            write_sample_to_state(samples.iloc[1 - metadata.good_class], cols, changeable={})
             st.rerun()
 
     # ------------------------------------------------------------------
@@ -87,7 +87,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
             # Use any value already stored in session_state as the default
             default_val = st.session_state.get(f"input_{col}", None)
 
-            col1, col2 = st.columns([3, 1])
+            col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
                 st.write(f"**{col}**")
                 if raw_df[col].dtype == "object":
@@ -123,12 +123,30 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                         key=f"input_{col}",
                     )
             with col2:
-                if raw_df[col].dtype != "object":
+                if col in metadata.changeable_col_names:
                     changeable[col] = st.checkbox(
                         "Changeable",
                         value=st.session_state.get(f"check_{col}", True),
                         key=f"check_{col}",
                     )
+            with col3:
+                if changeable.get(col, False):
+                    log_val = st.slider(
+                        "Weight (log10)",
+                        min_value=-1.0,
+                        max_value=1.0,
+                        value=math.log10( st.session_state.get(f"weight_{col}", 1.0) ),
+                        step=0.05,          # res. ≈ 10^(0.05) ≈ 1.12
+                        key=f"logweight_{col}",
+                        help="-1 → easy to change | +1 → hard to change",
+                        disabled=not changeable[col],
+                    )
+                    weight = 10 ** log_val
+                    weights_slider[col] = weight
+
+                    # Guarda el valor real (lineal) en session_state
+                    st.session_state[f"weight_{col}"] = weight
+                    st.caption(f"{weight:.2f}")
         # Once the user clicks the button, we collect the inputs and run inference
         if st.form_submit_button("Submit Application"):
             # Format data for your model (reshape or convert to DataFrame as needed)
@@ -139,12 +157,11 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
             person = clean_instance(inputs, metadata)
             # weights are the columns that are changeable
             list_weights = [
-                1 if changeable.get(col, False) else 0 for col in changeable
-            ] + [0] * (len(metadata.columns) - len(changeable))
-
+                weights_slider[col] if changeable.get(col, False) else 0 for col in metadata.columns
+            ]
             weights = torch.tensor(list_weights, dtype=torch.float32).to(device)
             # print(f"weights: {weights}")
-            result = model(person.unsqueeze(0))[0][0].item() > metadata.threshold
+            result = model(person.unsqueeze(0))[0][metadata.good_class].item() > metadata.threshold
 
             # 2) Display results
             if result:
@@ -152,15 +169,14 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
             else:
                 st.error("Your loan was denied.")
                 st.write("Here's what we recommend so you can qualify next time:")
-
+                                
                 person_new, _ = newton_op(
                     model,
                     person,
                     metadata,
                     weights,
-                    delta_threshold=0.04,
-                    reg_int=False,
-                    reg_vars=False,
+                    delta_threshold=0.2,
+                    reg_int=True,
                     reg_clamp=True,
                     print_=True,
                 )
@@ -179,21 +195,21 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                 for i, col in enumerate(metadata.columns):
                     if changes[i] > 0:
                         st.write(
-                            f"- Increase {col} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f}"
+                            f"- Increase {col} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f} (+{(person_new_unscaled[i].item() - person_unscaled[i].item()) / person_unscaled[i].item() * 100:.2f}%)"
                         )
                     elif changes[i] < 0:
                         st.write(
-                            f"- Decrease {col} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f}"
+                            f"- Decrease {col} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f} ({(person_new_unscaled[i].item() - person_unscaled[i].item()) / person_unscaled[i].item() * 100:.2f}%)"
                         )
 
                 st.write("These adjustments should help get an approved decision.")
 
 
 if __name__ == "__main__":
-    filename = "data/german_processed.csv"
-    model_name = "model_german"
-    model = main_train(filename, model_name)
-    # model = load_model(model_name).to(device)
+    filename = "data/Loan_default.csv"
+    model_name = "model_small"
+    # model = main_train(filename, model_name)
+    model = load_model(model_name).to(device)
     # load a pickle file
     # model = joblib.load(open("models/german_model.joblib", "rb"))
 

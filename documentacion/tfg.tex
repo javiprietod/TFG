@@ -43,7 +43,8 @@
   captionpos=b,
   breaklines=true,
   showstringspaces=false
-}
+  }
+\setlength\parindent{0pt}
 
 % Configuración de márgenes
 \geometry{top=2.5cm, bottom=4cm, left=2.5cm, right=2.5cm}
@@ -100,7 +101,6 @@
     
     \vspace{2cm}  % Espacio entre párrafos
     
-    \noindent
     \makebox[\textwidth][s]{Fdo.: \textbf{Javier Prieto Domínguez} \hfill Fecha: 10/06/2025}
 
     
@@ -114,9 +114,7 @@
     
     \vspace{1cm}  % Espacio entre el título y la firma
     
-    \noindent
     \makebox[\textwidth][s]{Fdo.: \textbf{David Alfaya Sánchez} \hfill Fecha: 10/06/2025}
-    \noindent
     \makebox[\textwidth][s]{Fdo.: \textbf{Jaime Pizarroso Gonzalo} \hfill Fecha: 10/06/2025}
 }
 
@@ -181,46 +179,51 @@ Research in counterfactual explanations often highlights a set of properties a g
   \item \textbf{Actionability:} The counterfactual only changes features that can realistically be altered (e.g., debt reduction but not age).
   \item \textbf{Diversity:} A set of counterfactuals should offer varied options for achieving the desired outcome.
 \end{itemize}
+
 Other desirable properties of the explanation \emph{itself} are
 efficiency, which speaks to the speed of the method of returning the explanations; stability, if two instances are similar, their counterfactual explanations should be similar as well; and fairness, explanation remains valid even if sensitive attributes (e.g., ethnicity) were altered~\cite{guidotti2024counterfactual}.\\
 \\
 Counterfactual methods can be categorized by the strategy used to create the explanations. The main strategies include Optimization-based, Heuristic-based, Instance-based, and Decision-tree-based methods~\cite{guidotti2024counterfactual}. While optimization-based explainers usually have outstanding results in many of the individual properties highlighted above, they usually lack a good trade-off between all of them. Heuristic, instance and decision tree based methods are usually endogenous, meaning the counterfactual returned comes from the original dataset, which provides good results for plausibility and diversity, but not for similarity. On the other hand, optimization methods are in their majority exogenous, meaning they create a new sample based on the algorithm they follow, which usually performs good on minimality and similarity while possibly leaving other properties like plausibility and actionability unfulfilled. The current state-of-the-art does not yet include an explainer that fulfills all the desirable properties~\cite{guidotti2024counterfactual}.\\
 \\
-The task of finding an algorithm that fulfills all of the properties has been attempted in many papers. The most well-known technique in counterfactual space is WACH~\cite{wachter2017counterfactual}, one of the first papers to publish and propose these explanations. They propose a loss function, adopted by other explainers, consisting in a distance function and a cross-entropy loss, which they try to minimize with a common optimizer such as SGD~\cite{} or Adam~\cite{}. 
-
-
-; ACTREC (Actionable Recourse)~\cite{ustun2019actionable} among the first to consider which features can be changed and which must remain fixed; DiCE~\cite{}, which generates a set of diverse counterfactuals for a single instance; or SGNCE~\cite{}, which guarantees the nearest counterfactual optimizing a mixed integer problem. Although XAI methods like LIME~\cite{ribeiro2016why} and SHAP~\cite{lundberg2017unified} exist, they tend to assign feature importance rather than produce clear, actionable changes in the input that could alter the classification. They both have adapted to the counterfactual world~\cite{,} but with little success~\cite{}.\\
+The task of finding an algorithm that fulfills all of the properties has been attempted in many papers. The most well-known technique in counterfactual space is WACH~\cite{wachter2017counterfactual}, one of the first papers to publish and propose these explanations. They propose a loss function, adopted by other explainers, consisting in a distance function and a cross-entropy loss, which they try to minimize with a common optimizer such as SGD~\cite{sgd} or Adam~\cite{adam}.\\
 \\
-
-Our objective is to devise a novel counterfactual technique based on an \emph{optimal mathematical solution} to the problem, using optimization methods and the model's derivatives to find the minimal shift needed for a given instance to change its output, fitting into the optimization-based category. We not only fulfill this similarity to the original instance by minimizing a distance function, validity and plausibility are guaranteed as well with how the method works. Other features like minimality, actionability, and diversity are achieved through a set of weights that determine the decisions and inner workings of the method in every step. This gives the ability, to either the entity using the algorithm or the client, to determine which features are actually changeable and how difficult it is to change it.
+Other important algorithms in the literature include ACTREC (Actionable Recourse)~\cite{ustun2019actionable}, one of the first to rigorously address which features can be changed and which must remain fixed. ACTREC formulates the counterfactual generation as a discrete optimization problem using integer programming, ensuring feasibility, actionability, and minimal cost over a discretized space. It guarantees global optimality within its constraints but is limited to linear models and can become computationally intensive for high-dimensional problems.\\
 \\
-
+In contrast, our method introduces a new optimization framework based on Lagrange multipliers and pseudo-Newton techniques, designed specifically for differentiable models such as neural networks and logistic regressions. By using NeuralSens~\cite{neuralsens} for efficient second-order derivative computation, our approach finds the minimal change required to change an instance classification output. Unlike ACTREC, which operates over a finite action grid, our method solves the continuous problem directly, offering high precision and smooth convergence in continuous feature spaces.\\
+\\
+Another notable method is DiCE~\cite{dice}, which uses a differentiable loss function to generate a set of diverse counterfactuals. DiCE ensures validity and similarity while promoting diversity using Determinantal Point Processes (DPPs). While many methods focus on finding the closest counterfactual with high precision, DiCE offers users a broad range of actionable options.\\
+\\
+Finally, SGNCE (Scaling Guarantees for Nearest Counterfactual Explanations)~\cite{sgnce} guarantees the closest actionable counterfactual by formulating the search as a mixed-integer program (MIP), exploring the full solution space and supporting variables of mixed types. This approach provides formal guarantees on coverage, feasibility and similarity, making it robust but computationally demanding. Unlike SGNCE, our method achieves similar goals through a continuous, second-order optimization strategy that avoids combinatorial search. By doing so, we gain significant efficiency and maintain high accuracy, while still enabling tailored cost functions and domain-specific adaptations, an advantage in real-world sectors like finance. \\
+\\
+Other common XAI methods like LIME~\cite{lime} and SHAP~\cite{shap} exist, but they provide explanations by assigning feature importance rather than producing clear, actionable changes in the input that could alter the classification. They both have adapted to the counterfactual world~\cite{limecshapc} but are mainly adapted to textual data and it has not been compared with many of the algorithms in the literature~\cite{guidotti2024counterfactual}.\\
+\\
+Our objective is to devise a novel counterfactual technique based on the \emph{optimal mathematical solution} to the problem, using optimization methods and the model's derivatives to find the minimal shift needed for a given instance to change its output, fitting into the optimization-based category. We not only fulfill this similarity to the original instance by minimizing a distance function, validity and plausibility are guaranteed as well with the intrinsics of the method. Other features like minimality (of features changed), actionability, and diversity are achieved through a set of weights that determine the decisions and inner workings of the method in every step. This gives the ability, to either the entity using the algorithm or the client, to determine which features are actually changeable and how difficult it is to change it. In the field of diversity, while DiCE provides a discrete set of diverse counterfactuals, our method has the ability to provide a wide spectrum of explanations by changing the weights to adapt to different situations and the needs and interests of different parties.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% Methodology %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Methodology}
-The purpose of this project is to create a innovative XAI technique for differentiable models. We will initially restrict the analysis to differentiable models since the method requires the use of derivatives for optimization matters and for that, differentiability is needed. We will also assume that it is a binary classification model with a threshold This new technique, or method, falls into the Counterfactual Explanations family of XAI. As mentioned earlier in the motivation, a counterfactual reveals what should have been different in an instance to observe a diverse outcome.
+The purpose of this project is to create a innovative XAI technique for differentiable models. We will initially restrict the analysis to differentiable models since the method requires the use of derivatives for optimization matters and for that, differentiability is needed. We will also assume that it is a binary classification model with a threshold This new technique, or method, falls into the Counterfactual Explanations family of XAI. As mentioned earlier in the motivation, a counterfactual reveals what should have been different in an instance to observe a diverse outcome.\\
 \\
-
 Following the definition of a counterfactual, and inspired by some of the main properties mentioned earlier, the innovative method aims to fulfill, or have, as many properties as possible. With the validity and similarity properties in mind, which refer to counterfactuals that succeed in changing the classification output with the minimum change needed, the mathematical optimization method of Lagrange multipliers comes up with a direct application to the problem. In this optimization method, it is possible to find local minimum (or maximum but it doesn’t apply to the problem) of a function with certain equation constraints. In the case of the counterfactual, we want to minimize the distance between the original instance and the new instance, subject to the condition of changing its classification output. This would fulfill both of the properties mentioned above. The equation with the Lagrangian multiplier becomes:
 
-\[
-\mathcal{L}(x, \lambda) = \; C(x, x_0) + \lambda \, \Bigl(M(x) - \theta \Bigr),
-\]
+\begin{equation}\label{eq:lagrange}
+\mathcal{L}(\mathbf{x}, \lambda) = \; C(\mathbf{x}, \mathbf{x}') + \lambda \, \Bigl(M(\mathbf{x}) - \theta \Bigr)
+\end{equation}
 where
 \begin{itemize}
   \item $x$ is the new instance (the counterfactual) with m features,
-  \item $x_0$ is the original instance,
-  \item $C(\cdot)$ is a cost function (distance) measuring how far $x$ is from $x_0$,
+  \item $x'$ is the original instance,
+  \item $C(\cdot)$ is a cost function (distance) measuring how far $x$ is from $x'$,
   \item $M(\cdot)$ is the differentiable model, 
   \item $\theta$ is the threshold for changing the classification, and
   \item $\lambda$ is the Lagrange multiplier.
 \end{itemize}
-The cost function consists of a weighted cost function, 
-whose values can be set to tailor the solution to the problem at hand. The problem we will be 
-aiming to solve is related to loan applications, specifically how to “fool” the model, or what 
-changes a person can make to get their application accepted instead of denied.
+The base of the cost/distance function is the weighted \emph{L2} norm, which can be defined as follows:
+\begin{equation}\label{eq:cost}
+    C(\mathbf{x}, \mathbf{x}', \mathbf{w}) = \sum_{i=1}^{m} \mathbf{w}_i \cdot (\mathbf{x}_i - \mathbf{x}'_{i})^2
+\end{equation}
+We will discuss added regularizers added to this cost function later, but the main idea is to have a distance function that can be weighted by the user, or the entity using the method, to determine how easy or difficult it is to change each feature. This is a key part of the method, as it allows for flexibility and customization in the counterfactual generation process.
 
 \subsection{Mathematical solution}
 The minimum value of $\mathcal{L}$ is found when the partial derivatives 
@@ -228,11 +231,10 @@ w.r.t.\ $\mathbf{x}$ and $\lambda$ are equal to 0. This implies:
 \begin{equation}\label{eq:deriv}
 F(\mathbf{x}, \lambda) \;=\; \nabla \mathcal{L}(\mathbf{x}, \lambda) \;=\;
 \begin{cases}
-\nabla C(\mathbf{x}) \;-\;\lambda\,\bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0, \\
+\nabla C(\mathbf{x}) \;-\;\lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0, \\
 -\,M(\mathbf{x})\;+\;\varepsilon\;=\;0.
 \end{cases}
 \end{equation}
-\noindent
 To solve this problem we will use the \emph{Newton-Raphson} method to solve this mathematical problem, ensuring we reach the optimal solution. Newton's methods are used to find the roots of a function, or the solution to the equation $f(x) = 0$. In optimization, with $f \in C^2$, we are trying to find the roots of $f'$, or the solutions to $f'(x) = 0$, known as critical points. These points can be minima, maxima or saddle points, but in the case of this problem we will try to find the minima of the function $f$. \\
 \\
 For this, Newton-Raphson’s method of optimization uses the first and second term of the Taylor expansion of the function to find that point iteratively~\cite{fliege2009newton}. For 1 dimension, or 1 variable, the update rule is $x_{k+1}=x_{k}-{\frac {f'(x_{k})}{f''(x_{k})}}$. As seen in \eqref{eq:deriv}, we have two variables, so the we have to use the generalization of the iterative scheme using the hessian as the second derivative. Thus, the new iterative scheme obtained becomes
@@ -245,7 +247,6 @@ For this, Newton-Raphson’s method of optimization uses the first and second te
 \;\cdot\;
 \nabla\mathcal{L}\bigl(\mathbf{x}_n,\lambda_n\bigr).
 \]
-\noindent
 If we set $F(\mathbf{x},\lambda) \;=\;\nabla \mathcal{L}(\mathbf{x},\lambda)$, 
 the equation simplifies to
 \[
@@ -262,14 +263,13 @@ where
 \mathbf{J}\!\bigl(F(\mathbf{x}_n,\lambda_n)\bigr)
 \;=\;
 \begin{pmatrix}
-H\!\bigl(C(\mathbf{x}_n)\bigr)\;-\;\lambda_n\,H\!\bigl(M(\mathbf{x}_n)\bigr) 
+H\!\bigl(C(\mathbf{x}_n)\bigr)\;-\;\lambda_n \cdot H\!\bigl(M(\mathbf{x}_n)\bigr) 
     & -\,\nabla M(\mathbf{x}_n)
 \\[6pt]
 -\,\nabla M(\mathbf{x}_n)
     & 0
 \end{pmatrix}.
 \]
-\noindent
 Above, $H(\cdot)$ denotes the Hessian (second derivative) with respect to $\mathbf{x}$, 
 and $\nabla(\cdot)$ denotes the gradient (first derivative).\\
 \\
@@ -285,39 +285,44 @@ First, in some iterations of some datapoints, the hessian can become singular or
 Second, many real-life datasets include variables like integer and categorical columns. The method works very well with continuous variables but it does not have a direct and easy solution for dealing with these column types.
 
 \subsection{Singular Matrices}
-As discussed, one of the main problems when taking this optimization-based generation is the possibility of singular or ill-conditioned Hessians. This can most tipically happen because of two main things. If we have two variables that have a high correlation, they most likely will have a very small eigenvalue, which means that the matrix could become ill-conditioned or even singular. This is very easily solved by performing a bit of exploratory data analysis and removing highly correlated variables. This is already a common practice in the data science world, so it is assumed that it should not produce any problems.
+As discussed, one of the main problems when taking this optimization-based generation is the possibility of singular or ill-conditioned Hessians. This can most tipically happen because of two main things. If we have two variables that have a high correlation, they most likely will have a very small eigenvalue, which means that the matrix could become ill-conditioned or even singular. This is very easily solved by performing a bit of exploratory data analysis and removing highly correlated variables. This is already a common practice in the data science world, so it is assumed that it should not produce any problems.\\
+\\
+The second problem is harder to solve, and it is the one we will be discussing in this section. This problem is when the gradient of the model is very close to 0, or the model has a flat curvature around a particular input. This leads again to a small eigenvalue, and the matrix becomes ill-conditioned. We explored some techniques like using the pseudo-inverse, damping techniques or switching to first-order updates for the affected iterations, but the experiments were not successful.To mitigate this issue, we implement an alternative update strategy when this type of ill-conditioning in the Hessian is detected. \\
+\\
+The ulterior objective behind this method is to find a valid counterfactual, which ideally is a point close to the original with a different classification output. If the \\
+\\
+To solve this problem, the alternative update step devised consists of using the normalized gradient of the model's output with respect to the input features to update. 
+\begin{equation}
+    \begin{cases}
+    \mathbf{x}_{n+1} = \mathbf{x}_n - \frac{\nabla M(\mathbf{x_n})}{|\nabla M(\mathbf{x_n})|}
+    \\
+    \lambda_{n+1} = \lambda_n
+    \end{cases}
+\end{equation}
 
-The second problem is harder to solve, and it is the one we will be discussing in this section. This problem is when the gradient of the model is very close to 0, or the model has a flat curvature around a particular input. This leads again to a small eigenvalue, and the matrix becomes ill-conditioned. We explored some techniques like using the pseudo-inverse, damping techniques or switching to first-order updates for the affected iterations, but the experiments were not successful.To mitigate this issue, we implement an alternative update strategy when this type of ill-conditioning in the Hessian is detected. 
-
-The ulterior objective behind this method is to find a valid counterfactual, which ideally is a point close to the original with a different classification output. If the 
-
-To solve this problem more robust solution is to reduce the dimensionality of the problem by focusing on a sub-Hessian matrix, which captures the curvature information only for a subset of sensitive features.
 
 
-\subsection{Singular Matrices}
+\subsection{How Weights Shape the Distance}
+In our counterfactual explanation framework, the distance function~\eqref{eq:cost} quantifies how “far” a candidate counterfactual \(\mathbf{x}'\) lies from the original instance \(\mathbf{x}\), where \(\mathbf{w}_i \ge 0\) is a nonnegative \emph{weight} that encodes the relative “cost” or difficulty of changing feature \(i\).
 
-As discussed, one of the primary numerical challenges in optimization-based counterfactual generation stems from the possibility of encountering singular or ill-conditioned Hessians. These matrices, which are critical for the second-order optimization step, may not be invertible due to very small or zero eigenvalues, typically when gradients are close to zero or the model has a flat curvature around a particular input.
+\begin{itemize}
+  \item \textbf{High weights} (\(w_i \!\!\gg\! 1\)) make changes in feature \(i\) “expensive”, discouraging the optimization from selecting that feature unless it is indispensable for flipping the model output.
+  \item \textbf{Low weights} (\(w_i \!\!\approx\! 0\)) make changes in feature \(i\) “cheap”, biasing counterfactuals toward modifying \(x_i\) first.
+\end{itemize}
+By tuning the vector \(\mathbf{w}\), practitioners can encode domain knowledge about which features are easy or hard to change in the real world, and users can tune their explanations by encoding their desirability or actionability to alter some features over others.
 
-This leads to a natural question: \textit{Why can't the top-left element (or sub-block) of the Hessian matrix be singular or non-invertible?} In practice, it can be, especially when one or more partial derivatives vanish or show strong dependencies among variables. If the derivative of the model with respect to a specific feature is close to zero, this introduces a degeneracy in the Hessian and can render it non-invertible or very unstable numerically. This directly affects the convergence of Newton-like methods, as the step update becomes unreliable or undefined.
-
-To mitigate this issue, we implement an alternative update strategy when ill-conditioning is detected. This involves using a pseudo-inverse, damping techniques, or switching to first-order updates for affected iterations. However, a more robust solution involves reducing the dimensionality of the problem by focusing on a sub-Hessian matrix, which captures the curvature information only for a subset of sensitive features.
-
-This leads to the following updated step, derived using the sub-Hessian:
-
+Because each term in ~\eqref{eq:cost} is multiplied by \(w_i\), a unit change for a certain feature $i$ where 
+\(\bigl(x_i-x_i'\bigr)^2=1\) \emph{costs} exactly \(2w_i\).
 \[
-x_{n+1} = x_n - \left( \nabla^2 L(x_n) \right)^{-1} \nabla L(x_n)
+\frac{\partial C}{\partial x_i'}
+\,=\,
+\frac{\partial}{\partial x_i'}
+\Bigl(w_i \cdot \bigl(x_i-x_i'\bigr)^2\Bigr)
+= - 2 \cdot w_i \cdot (x_i - x_i')
 \]
+This means that the higher \(w_i\), the larger the gradient (in magnitude), penalising deviations in \(x_i'\) more aggressively. \\
 
-where \( \nabla^2 L(x_n) \) is the Hessian of the loss function \( L \) at step \( x_n \), and \( \nabla L(x_n) \) is the gradient. If the full Hessian is ill-conditioned, we instead define a subspace \( \mathcal{S} \) of features with significant gradients and compute:
-
-\[
-x_{n+1}^{(\mathcal{S})} = x_n^{(\mathcal{S})} - \left( \nabla^2_{\mathcal{S}} L(x_n) \right)^{-1} \nabla_{\mathcal{S}} L(x_n)
-\]
-
-Here, \( \nabla^2_{\mathcal{S}} L(x_n) \) and \( \nabla_{\mathcal{S}} L(x_n) \) denote the Hessian and gradient restricted to the subspace \( \mathcal{S} \).
-
-This sub-Hessian approach improves numerical stability while still leveraging second-order optimization where it matters most.
-
+In practice, one might begin with all \(w_i = 1\) (equal cost), inspect the resulting explanation, and then increase \(w_i\) for features the end user finds unrealistic or non‐actionable, thereby refining the counterfactuals to be truly \emph{actionable}.
 
 \subsection{Discrete features}
 To address discrete variables, we found that imposing a regularizer to the distance function worked the best for the task. The regularizer is designed 
@@ -332,10 +337,21 @@ that looks something like
     \caption{Tangent regularizer function}
     \label{fig:reg tan}
 \end{figure}
-\noindent
-This function takes the value 0 in the integer points, but more importantly, they are saddle points, which are critical points in the newton's method. This means that iteratively, the features where the regularization is enforced will end up in one of those points, rather than in the possible optimum that could be a non-integer value.\\
+This function takes the value 0 in the integer points, but more importantly, they are saddle points, which are critical points in the newton's method. This means that iteratively, the features where the regularization is enforced will end up in one of those points, rather than in the possible optimum that could be a non-integer value. This regularizer is added to the cost function, so the new cost function becomes
+\begin{equation}\label{eq:cost_reg_unscaled}
+    C(\mathbf{x}, \mathbf{x}', \mathbf{w}) = \sum_{i=1}^{m} \mathbf{w}_i \cdot (\mathbf{x}_i - \mathbf{x}'_{i})^2 + \sum_{j=1}^{n} tan(\pi \cdot x'_j)
+\end{equation}
+where \(n\) is the number of discrete features. \\
 \\
+A common practice in data-science is to standardize the data, meaning that the features are transformed to have mean 0 and standard deviation 1. This helps the model to converge faster and better. In the case of ~\eqref{eq:cost_reg_unscaled}, it only works if the features are not standardized, as the periodic function is designed to have these critical points in the integers. If the features are standardized, the regularizer will not work as expected and the counterfactuals will not be valid. In this case, we can use a scaled version of the regularizer, which is designed to work with standardized features. The scaled version of the regularizer is defined as
+\begin{equation}\label{eq:cost_reg_scaled}
+    C(\mathbf{x}, \mathbf{x}', \mathbf{w}) = \sum_{i=1}^{m} \mathbf{w}_i \cdot (\mathbf{x}_i - \mathbf{x}'_{i})^2 + \sum_{j=1}^{n} tan(\pi \cdot (x'_j \cdot std_j + mean_j))
+\end{equation}
+where \(std_j\) and \(mean_j\) are the standard deviation and mean of the feature \(j\) respectively, previously calculated with the whole dataset and before training the model. This way, the regularizer will work as expected and the counterfactuals will be valid.\\
+\\
+Now we can use the regularizer to penalize the distance function for discrete features, ensuring that the counterfactuals generated will have integer values for those features. This is a key part of the method, as it allows for flexibility and customization in the counterfactual generation process, while still ensuring that the explanations are valid and actionable. 
 
+Nevertheless, we will not use this regularizer in every iteration. We want the algorithm to come close to the optimal solution without taking into account the integer features, so that the solution with integers comes close to the optimal solution. Then, we incude the regularizer in the cost function, and the algorithm will converge to the closest integer solution PROBAR SI FUNCIONA DESDE EL PRINCIPIO. When it is reaching the optimal solution with the regularizer, we \emph{turn off} the regularizer, round the features to the closest integer and freeze them by setting the weights to $\infty$ so that it is virtually impossible to change that feature.
 
 \subsection{Entrenamiento y Validación}
 
@@ -350,7 +366,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor i
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \eqref{eq:heat_b1} \eqref{eq:heat_b2}
 
 \subsection{Análisis de Rendimiento}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \\
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
 
 \begin{lstlisting}[caption={Entrenamiento de la red con Adam}, label={code:adam}]
 import torch
@@ -399,7 +415,7 @@ u_{tt} - c^2\,\Delta u = 0
 
 
 \section{Conclusiones y Trabajos Futuros}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \cite{}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 
 
 \begin{thebibliography}{99}
@@ -424,12 +440,12 @@ B.~Ustun, A.~Spangher, and Y.~Liu.
 \newblock Actionable Recourse in Linear Classification.
 \newblock {\em Proceedings of KDD '19}, 2019.
 
-\bibitem{ribeiro2016why}
+\bibitem{lime}
 M.~T. Ribeiro, S.~Singh, and C.~Guestrin.
 \newblock ``Why Should I Trust You?'': Explaining the Predictions of Any Classifier.
 \newblock {\em arXiv preprint arXiv:1602.04938}, 2016.
 
-\bibitem{lundberg2017unified}
+\bibitem{shap}
 S.~Lundberg and S.-I. Lee.
 \newblock A Unified Approach to Interpreting Model Predictions.
 \newblock {\em arXiv preprint arXiv:1705.07874}, 2017.
@@ -474,7 +490,30 @@ J.~M. Papakonstantinou.
 \bibitem{kaggleLoan3}
 \newblock Coursera. Data Science Coding Challenge: Loan Default Prediction. 
 \newblock \url{https://www.coursera.org/projects/data-science-coding-challenge-loan-default-prediction}.
+\bibitem{sgd}
+H.~Robbins and S.~Monro.
+\newblock A Stochastic Approximation Method.
+\newblock {\em The Annals of Mathematical Statistics}, 22(3):400--407, 1951.
 
+\bibitem{adam}
+D.~P. Kingma and J.~Ba.
+\newblock Adam: A Method for Stochastic Optimization.
+\newblock In {\em Proceedings of the 3rd International Conference on Learning Representations (ICLR)}, 2015.
+
+\bibitem{limecshapc}
+Y.~Ramon, D.~Martens, F.~Provost, and T.~Evgeniou.
+\newblock A comparison of instance-level counterfactual explanation algorithms for behavioral and textual data: SEDC, LIME-C and SHAP-C.
+\newblock {\em Advances in Data Analysis and Classification}, 14(4):801--819, 2020.
+
+\bibitem{dice}
+R.~K. Mothilal, A.~Sharma, and C.~Tan.
+\newblock Explaining machine learning classifiers through diverse counterfactual explanations.
+\newblock In {\em Proceedings of the 2020 Conference on Fairness, Accountability, and Transparency (FAT* '20)}, pages 607--617, 2020.
+
+\bibitem{sgnce}
+K.~Mohammadi, A.-H. Karimi, G.~Barthe, and I.~Valera.
+\newblock Scaling Guarantees for Nearest Counterfactual Explanations.
+\newblock {\em arXiv preprint arXiv:2010.04965}, 2021.
 \end{thebibliography}
 
 

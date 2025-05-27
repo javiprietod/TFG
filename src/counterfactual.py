@@ -175,10 +175,12 @@ def newton_op(
     metadata: DatasetMetadata,
     weights: torch.Tensor,
     delta_threshold: float = 0.1,
+    max_epochs: int = 100,
     reg_int: bool = False,
     reg_vars: bool = False,
     reg_clamp: bool = False,
     print_: bool = False,
+    der = False
 ):
     torch.manual_seed(0)
     output = model(person.unsqueeze(0))
@@ -189,13 +191,13 @@ def newton_op(
     state = 0
 
     if (
-        torch.argmax(output, dim=1).item() == 1
+        torch.argmax(output, dim=1).item() == (1 - metadata.good_class)
     ):  # TODO: poner todo en función del threshold del modelo
         person_new.requires_grad = True
 
         lr = 1
 
-        thres_term = (metadata.threshold - output[0][0]).item()
+        thres_term = (metadata.threshold - output[0][metadata.good_class]).item()
 
         mean_scaled = torch.zeros_like(person_new, dtype=torch.float32)
         mean_scaled[metadata.cols_for_scaler == 1] = (
@@ -209,7 +211,7 @@ def newton_op(
         state = State(
             model,
             metadata,
-            max_epochs=100,
+            max_epochs=max_epochs,
             dx_scaled=dx_scaled,
             mean_scaled=mean_scaled,
         )
@@ -227,7 +229,7 @@ def newton_op(
                 ### Si solo tenemos una variables activa que cambiar
                 ###################################################
                 derivative = torch.autograd.grad(
-                    model(person_new.unsqueeze(0))[0][0],
+                    model(person_new.unsqueeze(0))[0][metadata.good_class],
                     person_new,
                     create_graph=True,
                     allow_unused=True,
@@ -235,7 +237,7 @@ def newton_op(
                 delta = torch.cat(
                     (
                         (
-                            model(person_new.unsqueeze(0))[0][0]
+                            model(person_new.unsqueeze(0))[0][metadata.good_class]
                             - state.metadata.threshold
                         )/ derivative,
                         torch.tensor([0]).to(device),
@@ -276,13 +278,16 @@ def newton_op(
                         state.epochs = 0
 
                     first_time = False
+                # Reset the gradients
+                person_new = person_new.detach().clone().requires_grad_(True)
+                l = l.detach().clone().requires_grad_(True)
 
                 ###################################################
                 ### Definimos la función todas las veces para que tenga variables como statey weights que van cambiando
                 ###################################################
                 def fpl_func(x: torch.Tensor, l: torch.Tensor):
                     x = x.to(device)
-                    out = model(x.unsqueeze(0))[0][0]
+                    out = model(x.unsqueeze(0))[0][metadata.good_class]
                     cost_func = torch.autograd.grad(
                         distance(person, x, weights, state),
                         x,
@@ -302,43 +307,94 @@ def newton_op(
                     ###################################################
                     ### Problemas con la hessiana
                     ###################################################
-                    # calcula Delta = (H')^(-1) F
-                    # si Delta < epsilon:
-                    #     Delta = beta* grad(M)/|grad(M)|
-                    # factor = 1
-                    # delta = thres_term * factor * torch.cat(
-                    #     (
-                    #         torch.linalg.inv(jac_tuple[0][:-1, weights != 0])
-                    #         @ fpl[:-1],
-                    #         torch.tensor([0]).to(device),
-                    #     ),
-                    #     dim=0,
-                    # )
-                    # if torch.linalg.norm(delta).item() < 0.1: # ponemos este numero tan alto porque lo otro no funciona
-                    factor = 1
-                    # ponderamos salto a como de lejos estemos
-                    delta = (
-                        thres_term
-                        * factor # scalado de la distancia al umbral
-                        *
-                        torch.cat(
-                            (
-                                jac_tuple[0][-1, weights != 0]
-                                / torch.linalg.norm(jac_tuple[1]),
-                                torch.tensor([0]).to(device),
-                            ),
-                            dim=0,
+                    if der:
+                        
+                        # loss_value = torch.linalg.norm(fpl, ord=2)
+                    
+                        # loss_value.backward()
+                        # with torch.no_grad():
+                        #     person_new.grad *= weights
+                        #     delta = torch.cat((person_new.grad[weights != 0], l.grad.unsqueeze(0)))
+                        # lr = 0.6
+                        M = model(person_new.unsqueeze(0))[0][metadata.good_class]
+                        grad_dist = torch.autograd.grad(
+                            distance(person, person_new, weights, state),
+                            person_new,
+                            create_graph=True,
+                            allow_unused=True,
+                        )[0][weights != 0]
+                        grad_M = torch.autograd.grad(
+                            M, 
+                            person_new, 
+                            create_graph=True, 
+                            allow_unused=True
+                        )[0][weights != 0]
+
+                        l_derivative = (metadata.threshold - M)
+                        # derivada = (grad_dist - l * grad_M)
+                        # h_dist = torch.autograd.grad(
+                        #     grad_dist.sum(),
+                        #     person_new,
+                        #     create_graph=True,
+                        #     allow_unused=True,
+                        # )[0][weights != 0]
+
+                        # h_M = torch.autograd.grad(
+                        #     grad_M.sum(), 
+                        #     person_new, 
+                        #     create_graph=True, 
+                        #     allow_unused=True
+                        # )[0][weights != 0]
+                        # delta_x = 2 * (h_dist - l * h_M) * derivada - 2 * l_derivative * grad_M
+                        # delta_l = - 2 * (grad_M * derivada).sum()
+
+                        derivada = (grad_dist - l * grad_M) ** 2 + l_derivative ** 2
+                        delta_x = torch.autograd.grad(
+                            derivada.sum(),
+                            person_new,
+                            create_graph=True,
+                            allow_unused=True,
+                        )[0][weights != 0]
+
+                        delta_l = torch.autograd.grad(
+                            ((grad_dist - l * grad_M) ** 2).sum(),
+                            l,
+                            create_graph=True,
+                            allow_unused=True,
+                        )[0]
+
+                        delta = torch.cat((delta_x, delta_l.unsqueeze(0)))
+
+
+                        print(
+                            f"Using gradient descent: {torch.abs(torch.max(jac_tuple[1]))}"
+                        ) if print_ else None
+                        
+                    else:
+                        # ponderamos salto a como de lejos estemos
+                        delta = (
+                            thres_term
+                            *
+                            torch.cat(
+                                (
+                                    jac_tuple[0][-1, weights != 0]
+                                    / torch.linalg.norm(jac_tuple[1]),
+                                    torch.tensor([0]).to(device),
+                                ),
+                                dim=0,
+                            )
                         )
-                    )
-                    print(
-                        f"Jacobian is too small, using gradient descent: {torch.linalg.norm(jac_tuple[1])}"
-                    ) if print_ else None
-                    # else:
-                    #     print(
-                    #         f"Using subhessian: {torch.linalg.inv(jac_tuple[0][:-1, weights != 0]) @ fpl[:-1]}"
-                    #     ) if print_ else None
-                    #     print('Subhessiana')
+                        print(
+                            f"ONLY MODEL DERIVATIVE: {torch.linalg.norm(jac_tuple[1])}"
+                        ) if print_ else None
+
+                        # with torch.no_grad():
+                        #     person_new[weights != 0] -= delta[:-1] * lr
+                        #     l -= delta[-1] * lr
+                    
+
                 else:
+                    lr = 1
                     jac = torch.cat(
                         (jac_tuple[0][:, weights != 0], jac_tuple[1].unsqueeze(-1)),
                         dim=1,
@@ -373,22 +429,22 @@ def newton_op(
                 )
 
             output_new = model(person_new.unsqueeze(0))
-            thres_term = (metadata.threshold - output_new[0][0]).item()
+            thres_term = (metadata.threshold - output_new[0][metadata.good_class]).item()
             state.epochs += 1
 
             if print_:
-                print(
-                    "dist:",
-                    distance(person, person_new, weights, state).item(),
-                    ", threshold:",
-                    thres_term,
-                )
                 print(
                     "Changes:",
                     " delta1:",
                     delta[0].item(),
                     " delta_l:",
                     delta[-1].item(),
+                )
+                print(
+                    "dist:",
+                    distance(person, person_new, weights, state).item(),
+                    ", threshold:",
+                    thres_term,
                 )
 
             ###################################################

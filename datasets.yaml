@@ -17,4 +17,17 @@ data/german_processed.csv: {
     good_class: 0,
     weights: ["Age", "Credit"]
 }
+
+data/spambase.csv: {
+    id_column: "",
+    target_column: "spam",
+    good_class: 0,
+    weights: ["word_freq_make", "word_freq_address", "word_freq_all", "word_freq_3d", "word_freq_our", "word_freq_over", "word_freq_remove", "word_freq_internet", "word_freq_order", "word_freq_mail"]
+}
+data/santander.csv: {
+    id_column: "ID_code",
+    target_column: "target",
+    good_class: 0,
+    weights: []
+}
   

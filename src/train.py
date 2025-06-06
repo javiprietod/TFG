@@ -88,4 +88,4 @@ def main(path: str, model_name: str = None) -> None:
 
 
 if __name__ == "__main__":
-    main("data/Loan_default_2.csv", "model_small_2")
+    main("data/santander.csv", "model_santander")

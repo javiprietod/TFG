@@ -82,6 +82,8 @@ class DatasetMetadata:
         self.scaler: StandardScaler = None
         self.cols_for_scaler: torch.Tensor = None
         self.cols_for_scaler_names: np.ndarray = None
+        self.mean_scaled: torch.Tensor = None
+        self.dx_scaled: torch.Tensor = None
         self.obj_cols: dict[str, list[str]] = None  # values in categorical columns
         self.int_cols: torch.Tensor = None
         self.max_values: torch.Tensor = None
@@ -143,6 +145,18 @@ def clean_data(
     metadata.int_cols = torch.tensor(
         df_encoded.drop(metadata.target_column, axis=1).columns.isin(int_cols)
     )
+
+    instance_example = torch.tensor(df_encoded.drop(metadata.target_column, axis=1).iloc[0].values)
+    mean_scaled = torch.zeros_like(instance_example, dtype=torch.float32)
+    mean_scaled[metadata.cols_for_scaler == 1] = (
+        torch.tensor(metadata.scaler.mean_).to(torch.float)
+    )
+    dx_scaled = torch.ones_like(instance_example, dtype=torch.float32)
+    dx_scaled[metadata.cols_for_scaler == 1] = (
+        torch.tensor(metadata.scaler.scale_).to(torch.float)
+    )
+    metadata.mean_scaled = mean_scaled
+    metadata.dx_scaled = dx_scaled
 
     return df_encoded
 

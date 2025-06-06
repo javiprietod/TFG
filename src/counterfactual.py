@@ -28,11 +28,9 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 
 
 class State:
-    def __init__(self, model, metadata, max_epochs, dx_scaled, mean_scaled):
+    def __init__(self, model, metadata, max_epochs):
         self.model: LogisticModel = model
         self.metadata: DatasetMetadata = metadata
-        self.dx_scaled: torch.Tensor = dx_scaled
-        self.mean_scaled: torch.Tensor = mean_scaled
         self.epochs: int = 0
         self.max_epochs: int = max_epochs
         self.reg_int = False  # When to apply integer regularization
@@ -83,20 +81,22 @@ def distance(
 
         if state.reg_int:
             # Calculate the distance with regularization
-
-            # if state.epochs < 5:
-
-            #     cost += state.epochs * (2 - (1 + torch.cos(2 * torch.pi * (new * state.dx_scaled + state.mean_scaled) * state.metadata.int_cols)))
-            
-            # else:
+            # cost += (
+            #     + (
+            #         torch.tan(
+            #             torch.pi
+            #             * (new * state.metadata.dx_scaled + state.metadata.mean_scaled)
+            #             * state.metadata.int_cols.to(device)
+            #         )
+            #     )
+            #     ** 2
+            # )
             cost += (
                 + (
-                    torch.tan(
-                        torch.pi
-                        * (new * state.dx_scaled + state.mean_scaled)
+                        ((new * state.metadata.dx_scaled + state.metadata.mean_scaled) - 
+                        torch.round(new * state.metadata.dx_scaled + state.metadata.mean_scaled))
                         * state.metadata.int_cols.to(device)
                     )
-                )
                 ** 2
             )
 
@@ -199,21 +199,10 @@ def newton_op(
 
         thres_term = (metadata.threshold - output[0][metadata.good_class]).item()
 
-        mean_scaled = torch.zeros_like(person_new, dtype=torch.float32)
-        mean_scaled[metadata.cols_for_scaler == 1] = (
-            torch.tensor(metadata.scaler.mean_).to(torch.float).to(device)
-        )
-        dx_scaled = torch.zeros_like(person_new, dtype=torch.float32)
-        dx_scaled[metadata.cols_for_scaler == 1] = (
-            torch.tensor(metadata.scaler.scale_).to(torch.float).to(device)
-        )
-
         state = State(
             model,
             metadata,
             max_epochs=max_epochs,
-            dx_scaled=dx_scaled,
-            mean_scaled=mean_scaled,
         )
         state.reg_vars = reg_vars
         state.reg_int = False
@@ -275,7 +264,6 @@ def newton_op(
 
                     if reg_int:
                         state.reg_int = True
-                        state.epochs = 0
 
                     first_time = False
                 # Reset the gradients
@@ -307,94 +295,27 @@ def newton_op(
                     ###################################################
                     ### Problemas con la hessiana
                     ###################################################
-                    if der:
-                        
-                        # loss_value = torch.linalg.norm(fpl, ord=2)
-                    
-                        # loss_value.backward()
-                        # with torch.no_grad():
-                        #     person_new.grad *= weights
-                        #     delta = torch.cat((person_new.grad[weights != 0], l.grad.unsqueeze(0)))
-                        # lr = 0.6
-                        M = model(person_new.unsqueeze(0))[0][metadata.good_class]
-                        grad_dist = torch.autograd.grad(
-                            distance(person, person_new, weights, state),
-                            person_new,
-                            create_graph=True,
-                            allow_unused=True,
-                        )[0][weights != 0]
-                        grad_M = torch.autograd.grad(
-                            M, 
-                            person_new, 
-                            create_graph=True, 
-                            allow_unused=True
-                        )[0][weights != 0]
-
-                        l_derivative = (metadata.threshold - M)
-                        # derivada = (grad_dist - l * grad_M)
-                        # h_dist = torch.autograd.grad(
-                        #     grad_dist.sum(),
-                        #     person_new,
-                        #     create_graph=True,
-                        #     allow_unused=True,
-                        # )[0][weights != 0]
-
-                        # h_M = torch.autograd.grad(
-                        #     grad_M.sum(), 
-                        #     person_new, 
-                        #     create_graph=True, 
-                        #     allow_unused=True
-                        # )[0][weights != 0]
-                        # delta_x = 2 * (h_dist - l * h_M) * derivada - 2 * l_derivative * grad_M
-                        # delta_l = - 2 * (grad_M * derivada).sum()
-
-                        derivada = (grad_dist - l * grad_M) ** 2 + l_derivative ** 2
-                        delta_x = torch.autograd.grad(
-                            derivada.sum(),
-                            person_new,
-                            create_graph=True,
-                            allow_unused=True,
-                        )[0][weights != 0]
-
-                        delta_l = torch.autograd.grad(
-                            ((grad_dist - l * grad_M) ** 2).sum(),
-                            l,
-                            create_graph=True,
-                            allow_unused=True,
-                        )[0]
-
-                        delta = torch.cat((delta_x, delta_l.unsqueeze(0)))
-
-
-                        print(
-                            f"Using gradient descent: {torch.abs(torch.max(jac_tuple[1]))}"
-                        ) if print_ else None
-                        
-                    else:
-                        # ponderamos salto a como de lejos estemos
-                        delta = (
-                            thres_term
-                            *
-                            torch.cat(
-                                (
-                                    jac_tuple[0][-1, weights != 0]
-                                    / torch.linalg.norm(jac_tuple[1]),
-                                    torch.tensor([0]).to(device),
-                                ),
-                                dim=0,
-                            )
+                    # ponderamos salto a como de lejos estemos
+                    delta = (
+                        thres_term
+                        *
+                        torch.cat(
+                            (
+                                jac_tuple[0][-1, weights != 0]
+                                / torch.linalg.norm(jac_tuple[1]),
+                                torch.tensor([0]).to(device),
+                            ),
+                            dim=0,
                         )
-                        print(
-                            f"ONLY MODEL DERIVATIVE: {torch.linalg.norm(jac_tuple[1])}"
-                        ) if print_ else None
+                    )
+                    print(
+                        f"ONLY MODEL DERIVATIVE: {torch.linalg.norm(jac_tuple[1], ord=float('inf'))}"
+                    ) if print_ else None
 
-                        # with torch.no_grad():
-                        #     person_new[weights != 0] -= delta[:-1] * lr
-                        #     l -= delta[-1] * lr
                     
 
                 else:
-                    lr = 1
+                    # lr = np.exp(-0.05 * state.epochs)
                     jac = torch.cat(
                         (jac_tuple[0][:, weights != 0], jac_tuple[1].unsqueeze(-1)),
                         dim=1,
@@ -474,85 +395,6 @@ def newton_op(
             print("Regularization strength:", l.item())
             print("Epochs:", state.epochs)
     return person_new, state
-
-
-def minimality_check(
-    person: torch.Tensor,
-    person_new: torch.Tensor,
-    weights: torch.Tensor,
-    state: State,
-    model: LogisticModel,
-    reg_clamp=False,
-    noise=1e-3,
-    n_points=1000,
-):
-    points = torch.tensor(
-        np.random.uniform(-noise, noise, (n_points, person_new.shape[0]))
-        * weights.numpy()
-        + person_new.detach().cpu().numpy().reshape(-1),
-        dtype=torch.float32,
-    ).to(device)
-    points = (
-        torch.clamp(points, state.metadata.min_values, state.metadata.max_values)
-        if reg_clamp
-        else points
-    )
-    outputs = model(points)
-    # pandas dataset
-    b = pd.DataFrame(points, columns=state.metadata.columns)
-    b["output"] = torch.argmax(outputs, dim=1).detach().cpu().numpy()
-    distances = torch.tensor([distance(person, p, weights, state) for p in points])
-    b["distance"] = distances.detach().cpu().numpy()
-
-    d = distance(person, person_new, weights, state).item()
-    sorted_b = b[b["distance"] <= d][b["output"] == 0].sort_values(by="distance")
-    return sorted_b
-
-def integer_minimality_check(
-    person: torch.Tensor,
-    person_new_int: torch.Tensor,
-    weights: torch.Tensor,
-    state: State,
-    model: LogisticModel,
-    noise=1e-3,
-    n_points=10000,
-    noise_int=2.5,
-):
-    w = weights & ~state.metadata.int_cols
-    noise_tensor = np.random.uniform(
-        -noise, noise, (n_points, person_new_int.shape[0])
-    ) * w.numpy()
-    rounded_noise_tensor = np.random.randint(
-        -noise_int, noise_int, (n_points, person_new_int.shape[0])
-    ) * (weights & state.metadata.int_cols).numpy()
-
-    points = scale_batch(
-        torch.tensor(
-            noise_tensor
-            + rounded_noise_tensor
-            + unscale_instance(person_new_int, state.metadata).detach().cpu().numpy().reshape(-1),
-            dtype=torch.float32,
-        ),
-        state.metadata,
-    ).to(device)
-
-    outputs = model(points)
-
-    # pandas dataset
-    points_unscaled = unscale_batch(points, state.metadata)
-    b = pd.DataFrame(points_unscaled, columns=state.metadata.columns)
-
-    # add person_new_int to the dataframe
-    b["output"] = torch.argmax(outputs, dim=1).detach().cpu().numpy()
-
-    distances = torch.tensor([distance(person, p, weights, state) for p in points])
-    b["distance"] = distances.detach().cpu().numpy()
-
-    d = distance(person, person_new_int, weights & ~state.metadata.int_cols, state).item()
-    sorted_b = b[b["distance"] < d][b["output"] == 0].sort_values(by="distance")
-
-    return sorted_b
-
 
 if __name__ == "__main__":
     filename = "data/adult_income_train.csv"

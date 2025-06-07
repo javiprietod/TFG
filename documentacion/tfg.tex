@@ -4,22 +4,22 @@
 \usepackage{fancyhdr}
 \usepackage{geometry}
 \usepackage{lipsum}
-\usepackage{tocloft} % Para el índice
-\usepackage{hyperref} % Para que los elementos referenciados sean clickables
+\usepackage{tocloft} 
+\usepackage{hyperref}
 \usepackage{amsmath}
 \numberwithin{equation}{section}
-\setlength{\jot}{14pt} % Para separar las líneas de ecuaciones
+\setlength{\jot}{14pt}
 \usepackage{amssymb}
-\usepackage{float} % Para colocar las imágenes y tablas
+\usepackage{float}
 
 \usepackage{caption}
-\usepackage{pifont} % For checkmark and cross symbols
+\usepackage{pifont}
 \usepackage{listings}
 \usepackage{hyperref}
 \usepackage{algpseudocode}
 \usepackage{algorithm}
-\usepackage{booktabs} % For improved table formatting
-\usepackage{multirow} % For multirow functionality in tables
+\usepackage{booktabs}
+\usepackage{multirow}
 
 \renewcommand{\tableautorefname}{Table}
 \renewcommand{\figureautorefname}{Figure}
@@ -27,7 +27,6 @@
 \renewcommand{\lstlistingname}{Algorithm}
 \newcommand{\algorithmautorefname}{Algorithm}
 
-% en el preámbulo
 \usepackage{listings}
 \usepackage{xcolor}
 \lstset{
@@ -38,19 +37,16 @@
   commentstyle=\color{gray}\itshape,
   numbers=left,
   numberstyle=\tiny,
-  frame=none, % single para un recuadro negro
+  frame=none,
   captionpos=b,
   breaklines=true,
   showstringspaces=false
   }
-% \setlength\parindent{0pt}
 
-% Configuración de márgenes
 \geometry{top=2.5cm, bottom=4cm, left=2.5cm, right=2.5cm}
 
 \begin{document}
 
-% Portada
 \begin{titlepage}
     \centering
     \includegraphics[width=0.35\textwidth]{images/Logo_comillas.png}\\[1cm] 
@@ -69,17 +65,13 @@
     \vfill
 \end{titlepage}
 
-% Aumentar el espacio del encabezado para evitar que se solape
-\setlength{\headheight}{2cm}  % Ajusta esto según el tamaño de la imagen
+\setlength{\headheight}{2cm}
 
 % Configuración del encabezado
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\includegraphics[width=2cm]{images/Color_logo_comillas.png}} % A la izquierda
-% \fancyhead[C]{\textbf{UNIVERSIDAD PONTIFICIA COMILLAS}}  % En el centro
-% \fancyhead[R]{\textbf{ICAI}}  % A la derecha
+\fancyhead[L]{\includegraphics[width=2cm]{images/Color_logo_comillas.png}} 
 
-% Texto en el encabezado
 \fancyhead[C]{
     \hspace{2cm}
     \textbf{UNIVERSIDAD PONTIFICIA COMILLAS}\\
@@ -89,21 +81,19 @@
     Grado en Ingeniería Matemática e Inteligencia Artificial
 }
 
-% Página 2 Declaración de Responsabilidad
 \newpage
 
 {\fontsize{14}{18}\selectfont
-    % Declaración o contenido de la página (texto justificado)
     Declaro, bajo mi responsabilidad, que el Proyecto presentado con el título \textbf{Interpreting Neural Networks - Developing a Methodology for Banking Case Studies Using Explainable AI} en la ETS de Ingeniería - ICAI de la Universidad Pontificia Comillas en el curso académico 2024/25 es de mi autoría, original e inédito y no ha sido presentado con anterioridad a otros efectos. \\
     
     El Proyecto no es plagio de otro, ni total ni parcialmente y la información que ha sido tomada de otros documentos está debidamente referenciada.
     
-    \vspace{2cm}  % Espacio entre párrafos
+    \vspace{2cm}
     
     \makebox[\textwidth][s]{Fdo.: \textbf{Javier Prieto Domínguez} \hfill Fecha: 10/06/2025}
 
     
-    \vspace{2cm}  % Espacio entre las firmas y la siguiente sección
+    \vspace{2cm}
     
     \begin{center}
         Autorizada la entrega del proyecto \\
@@ -111,13 +101,12 @@
         \textbf{LOS DIRECTORES DEL PROYECTO}
     \end{center}
     
-    \vspace{1cm}  % Espacio entre el título y la firma
+    \vspace{1cm}
     
     \makebox[\textwidth][s]{Fdo.: \textbf{David Alfaya Sánchez} \hfill Fecha: 10/06/2025}
     \makebox[\textwidth][s]{Fdo.: \textbf{Jaime Pizarroso Gonzalo} \hfill Fecha: 10/06/2025}
 }
 
-% Página 3 Agradecimientos
 \newpage
 
 {\fontsize{17}{20}
@@ -131,25 +120,81 @@
     Neural networks are increasingly employed in the banking sector for tasks ranging from credit scoring to fraud detection. Despite their powerful predictive capabilities, the opacity of neural network models poses significant challenges for their interpretability. This project aims to bridge the gap between neural network architectures and their practical interpretation by developing a comprehensive methodology utilizing state-of-the-art Explainable AI (XAI) techniques.
 \end{abstract}
 
-% Índice de la memoria
 \newpage
-\tableofcontents  % Esto genera el índice automáticamente
+\tableofcontents
 \thispagestyle{fancy}
 
-% Comienza la memoria
 \newpage
-% \twocolumn
 
-% Aumentar el espacio entre la línea y el número de página
-\renewcommand{\footrulewidth}{0.4pt}  % Línea separadora en el pie de página
-\setcounter{page}{1}  % Empezar la numeración de páginas desde la página 6
+\section*{Introduction}
+Many entities like banks face two challenges when it comes to regulations in the AI field.Regulations such as the EU GDPR require institutions to \emph{explain} model outputs used for business decisions. Classic scoring engines (logistic regression, decision trees) used now are interpretable, but often underperform modern neural networks.
+
+Our goal is to bridge performance and interpretability by creating a \emph{counterfactual explanations} method. These fall under the eXplicable Artificial Intelligence (XAI) field, and they are used to explain what is the change needed to flip 
+a model's decision for a given instance. For example, if a loan application is rejected, the method should suggest actionable changes to the applicant's profile that would change the decision to approved. %#TODO: cite
+
+\section*{Related Work}
+The field of Counterfactual Explainers has been around for a while, with many methods proposed to tackle the problem of explaining neural networks. Not all methods are created equal. For that, ~\cite{guidotti2024counterfactual} proposes a set of properties a good counterfactual explanation should fulfill, such as \emph{validity, similarity, plausibility, actionability, diversity, efficiency,} and \emph{stability}. Some methods like WACH~\cite{wachter2017counterfactual}, ACTREC~\cite{ustun2019actionable}, DiCE~\cite{dice} and SGNCE~\cite{sgnce} have been proposed to tackle the problem of counterfactual explanations, but they do not fulfill all the properties mentioned above. We propose an innovative method based on mathematical optimization that uses second-order derivatives to find the optimal solution to the problem, ensuring most of the properties and establishing a baseline for future work, where the method can be improved to fulfill all them.
+
+\section*{Methodology}
+The method we propose formulates the counterfactual generation using Lagrangian multipliers. Given an instance $\mathbf{x}\! \in\! \mathbb{R}^m$, a differentiable classifier $M$, and a decision threshold $\varepsilon$, we seek to solve the optimization problem defined as
+\begin{equation}
+\mathcal{L}(\mathbf{x}, \lambda) = \; C(\mathbf{x}) + \lambda \, \Bigl(M(\mathbf{x}) - \theta \Bigr)
+\end{equation}
+where $C$ is a \emph{weighted} $\ell_2$ cost
+$
+C(\mathbf{x}) = \sum_{i=1}^m w_i\bigl(x_i - x_{0,i}\bigr)^2$. To solve this equation, we need to find the minimum of the Lagrangian function $\mathcal{L}$, which is done by finding the values that satisfy $\nabla \mathcal{L}(\mathbf{x}, \lambda) = 0$, where the system of equations is given by
+\[
+F(\mathbf{x}, \lambda) \;=\; \nabla \mathcal{L}(\mathbf{x}, \lambda) \;=\; 0:
+\begin{cases}
+\nabla C(\mathbf{x}) \;-\;\lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0 \\
+-\,M(\mathbf{x})\;+\;\varepsilon\;=\;0
+\end{cases}
+\]
+This is solved via a pseudo-Newton iteration that leverages \textbf{second-order} derivatives to find the roots of $F$. The normal update step is given by
+\[
+\bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
+\;=\;
+\bigl(\mathbf{x}_n,\,\lambda_n\bigr)
+\;-\;
+\mathbf{H}^{-1}\!\bigl(\mathcal{L}(\mathbf{x}_n,\lambda_n)\bigr)
+\;\cdot\;
+\nabla\mathcal{L}\bigl(\mathbf{x}_n,\lambda_n\bigr).
+\]
+As we are using the inverse of the hessian matrix, ill-conditioned Hessians become a problem. To mitigate this, we implement an alternative update step that uses the normalized gradient of the model's output with respect to the input features to update, which allows the algorithm to continue making progress towards a valid counterfactual even when the Hessian is ill-conditioned.
+
+The weights $\mathbf{w}$ (editable by the entity or end-user) encode the relative effort, or cost, of changing each feature $x_i$ from its original value. If the weight for a feature is high, it means that changing that feature is difficult or costly, while a low weight means that changing that feature is easy or cheap. This is the key part of the method, as it allows for flexibility, customization and actionability. 
+
+\subsection*{Handling Discrete Features}
+An adaptive regularizer 
+\[
+R(\mathbf{x})=\sum_{i\in \mathcal{Z}}\bigl(x_i-\lfloor x_i\rceil\bigr)^2
+\]
+is injected into $C$ only when the iterate is near the optimal solution, forcing integer-valued features toward \emph{legal} values. Categorical features are one-hot encoded, but we have not yet implemented a way to handle them in the method.
+
+\section*{Empirical Evaluation}
+To evaluate we use different datasets~\cite{kaggleLoan1,spambase,santander} ranging from 8 to 200 features and the metrics we evaluate are: validity, similarity, plausibility (via Local Outlier Factor), efficiency, stability, and actionability.
+
+We have found that out model correctly generates counterfactuals that are valid and successfully finds the minimal change needed to flip the model's decision, fulfilling the similarity property as well. We measure plausibility with two main metrics. We evaluate if the counterfactuals are within the empirical bounds of the original dataset, and we also use the Local Outlier Factor (LOF)~\cite{lof} to measure  if they are in-distribution. All of these criteria are met by all of the samples in out test set, composed of 176 instances of each dataset. 
+
+In the field of efficiency, we measure the time it takes to generate a counterfactual for each instance. We find that our method is very efficient, taking around 0.02 seconds for 8 features and around 0.16 seconds for 200 features, which is around 10 times faster than DiCE~\cite{dice} on the same hardware and more than 100x faster than SGNCE. In stability we obtain distance ratios of around 0.8 to 1.0 across $20$-nearest neighbors, meaning that the method yields similar counterfactuals for similar initial instances. Actionability is one of our biggest contributions, as we allow the user to set the weights for each feature, which allows for a wide range of counterfactuals to be generated. As the property is defined as how realistic are the changes proposed, and the user can set the weights to determine how easy or difficult it is to change each feature, we revolutionise the definition.
+
+\section*{Web Application}
+A lightweight \texttt{streamlit} website showcases the model's capabilities, allowing users to interactively generate counterfactuals. This is a customizable web that works with any dataset and consists of a form in which the client/user introduces their personal data and the set of weights they want to use. If the model outputs a negative classification for the data introduced, the website will generate the counterfactual and tell the user the changes they should make to flip the model's decision.
+
+\section*{Conclusions and Future Work} 
+This work presents the first counterfactual explanation algorithm whose search procedure is entirely grounded in Newton optimisation. Leveraging second-order derivatives lets the method reach the smallest decision-changing perturbation for any differentiable model in just a few iterations. An innovative weight vector inside the cost function encodes how hard it is in real life to modify each feature, so analysts or end-users can rule certain attributes immutable (e.g., age) or make others cheap to change.
+
+Future work targets three extensions: (1) adding a sparsity regulariser to minimise the number of changed features, balancing similarity versus minimality; (2) learning an informed initial weight vector from logged user feedback so the system starts with feature costs that historically yielded the most actionable counterfactuals; and (3) expanding the method to work with one-hot encoded categorical features. Together, these directions aim to personalise explanations further and broaden dataset compatibility.
+
+\newpage
+\setcounter{page}{1}
 \fancyfoot[C]{
     \begin{center}
         \thepage
     \end{center}
-}  % Mueve el número de página 0.5cm hacia abajo desde la línea
-\setlength{\footskip}{0.8cm}  % Aumenta la distancia entre el contenido y 
-
+} 
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\footskip}{0.8cm}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% Introduction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -228,13 +273,13 @@ w.r.t.\ $\mathbf{x}$ and $\lambda$ are equal to 0. This implies:
 \begin{equation}\label{eq:deriv}
 F(\mathbf{x}, \lambda) \;=\; \nabla \mathcal{L}(\mathbf{x}, \lambda) \;=\; 0:
 \begin{cases}
-\nabla C(\mathbf{x}) \;-\;\lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0, \\
--\,M(\mathbf{x})\;+\;\varepsilon\;=\;0.
+\nabla C(\mathbf{x}) \;-\;\lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0 \\
+-\,M(\mathbf{x})\;+\;\varepsilon\;=\;0
 \end{cases}
 \end{equation}
 To solve this problem we will use the \emph{Newton-Raphson} method to solve this mathematical problem, ensuring we reach the optimal solution. Newton's method is used to find the roots of a function, or the solution to the equation $f(x) = 0$. In optimization, with $f \in C^2$, we are trying to find the roots of $f'$, or the solutions to $f'(x) = 0$, known as critical points. These points can be minima, maxima or saddle points, but in the case of this problem we will try to find the minima of the function $f$. \par
 For this, Newton-Raphson’s method of optimization uses the first and second term of the Taylor expansion of the function to find that point iteratively~\cite{fliege2009newton}. For 1 dimension, or 1 variable, the update rule is $x_{k+1}=x_{k}-{\frac {f'(x_{k})}{f''(x_{k})}}$. As seen in \eqref{eq:deriv}, we have at least two variables ($x$ and $\lambda$), so the we have to use the generalization of the iterative scheme using the hessian as the second derivative. Thus, the new iterative scheme obtained becomes
-\[
+\begin{equation}\label{eq:newton}
 \bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
 \;=\;
 \bigl(\mathbf{x}_n,\,\lambda_n\bigr)
@@ -242,10 +287,10 @@ For this, Newton-Raphson’s method of optimization uses the first and second te
 \mathbf{H}^{-1}\!\bigl(\mathcal{L}(\mathbf{x}_n,\lambda_n)\bigr)
 \;\cdot\;
 \nabla\mathcal{L}\bigl(\mathbf{x}_n,\lambda_n\bigr).
-\]
+\end{equation}
 If we set $F(\mathbf{x},\lambda) \;=\;\nabla \mathcal{L}(\mathbf{x},\lambda)$, 
 the equation simplifies to
-\[
+\begin{equation}\label{eq:newton_simplified}
 \bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
 \;=\;
 \bigl(\mathbf{x}_n,\,\lambda_n\bigr)
@@ -253,9 +298,9 @@ the equation simplifies to
 \mathbf{J}\!\bigl(F(\mathbf{x}_n,\lambda_n)\bigr)
 \;\cdot\;
 F\!\bigl(\mathbf{x}_n,\lambda_n\bigr),
-\]
+\end{equation}
 where
-\[
+\begin{equation}\label{eq:hessian}
 \mathbf{J}\!\bigl(F(\mathbf{x}_n,\lambda_n)\bigr)
 \;=\;
 \begin{pmatrix}
@@ -265,7 +310,7 @@ H\!\bigl(C(\mathbf{x}_n)\bigr)\;-\;\lambda_n \cdot H\!\bigl(M(\mathbf{x}_n)\bigr
 -\,\nabla M(\mathbf{x}_n)
     & 0
 \end{pmatrix}.
-\]
+\end{equation}
 Above, $H(\cdot)$ denotes the Hessian (second derivative) with respect to $\mathbf{x}$, 
 and $\nabla(\cdot)$ denotes the gradient (first derivative)
 
@@ -351,10 +396,16 @@ In practice, we can implement these constraints by clamping the values of the fe
 \subsection{Threshold}\label{sec:threshold}
 The threshold is a key part of the method. For starters, it is the value that determines whether the model output changes or not. The threshold can be set to any value, but it is usually set to 0.5 for binary classification problems. Abstracting ourselves from the mathematical problem and counterfactual generations, we want this to be useful in a real world scenario. 
 
-Many times, entities change the model they use to classify instances and make business decisions based on the model output. As the counterfactual method is designed to find the minimal change given that the model's output is the threshold, if we match the threshold to the \emph{business decision threshold} ( the one the banks use to finally determine whether to give out a loan or not), it creates a risk of the counterfactuals not being useful in the future because of those model changes. For this reason, we can set the threshold to be $0.5 + 10^{-5}$ or $0.5 + 10^{-7}$, which is a small value that ensures that the counterfactucals generated will be valid and useful in the future.
+Many times, entities update the model they use to classify instances and make business decisions based on the model output. As the counterfactual method is designed to find the minimal change given that the model's output is the threshold, if we match the threshold to the \emph{business decision threshold} ( the one the banks use to finally determine whether to give out a loan or not), it creates a risk of the counterfactuals not being useful in the future because of those model changes. For this reason, we can set the threshold to be $0.5 + 10^{-5}$ or $0.5 + 10^{-7}$, which is a small value that ensures that the counterfactucals generated will be valid and useful in the future.
 
-\subsection{Obtaining the Counterfactuals}
-We can now obtain the counterfactuals by iteratively applying the Newton-Raphson method to the Lagrangian function~\eqref{eq:lagrange} with the cost function~\eqref{eq:cost_reg_scaled}. The algorithm is detailed in \autoref{alg:newton_counterfactual}
+Another reason to set the threshold to the business decision threshold + a small value is due to two little errors that can appear. Firstly, Newton's method is known to have a convergence problem for some functions, getting stuck in a \emph{2-cycle}, never reaching the optimal solution~\cite{ypmanewton}. These cycle can happen anytime, and they can be of any length. In all of the testing we have done with all of the datasets, we have not encountered any \emph{2-cycle} bigger than $10^{-8}$. This is one of the reasons we set the threshold to $0.5 + \varepsilon$, where $\varepsilon$ takes a value bigger than the biggest cycle we have encountered. Like that, we ensure validity in the counterfactual generated. This is a value that can be set by the entity if needed.
+
+Another reason to set the threshold to a value bigger than $0.5$ is due to floating-point errors. When working with floating-point numbers, it is common to encounter small errors due to the way numbers are represented in computers. When setting the threshold to $0.5$, we encountered some problems when checking the validity of the counterfactual, and even though the method converged to a solution, the counterfactual was not valid because of these errors. This is yet another reason to set the threshold to a value bigger than $0.5$. Other methods in the literature have also set the threshold to a value bigger than $0.5$~\cite{sgnce}, but they have different reasons to do so, like complexity or computational cost. We do not have these problems, as our method converges to the optimal solution for a given threshold, but for the reasons mentioned above, we set the threshold to a value bigger than $0.5$.
+
+\subsection{Obtaining the Counterfactuals}\label{sec:obtaining_counterfactuals}
+We can now obtain the counterfactuals by iteratively applying the Newton-Raphson method to the Lagrangian function~\eqref{eq:lagrange} with the cost function~\eqref{eq:cost_reg_scaled}. The algorithm is detailed in \autoref{alg:newton_counterfactual}. This is a general algorithm that can be used on any numerical dataset, but it some modifications are needed to obtain the results explained in the next section.
+
+When using the alternative update step for ill conditioned Hessians explained in Section \ref{sec:singular}, we have to determine when to use it. As we do not want to be influenced by the number of features, we use the infinity norm of the model's derivative with respect to the input features (line \ref{lst:line_norm}), which corresponds as well with the jacobian of the model with respect to lambda (see \eqref{eq:hessian}). When this norm is below a certain threshold, we consider the Hessian to be ill-conditioned and we use the alternative update step. As we are using the model's derivative, it is model dependent, and therefore, it is dataset dependent as well. We have used values between $0.05$ and $0.2$ for the threshold, but it is a value that can be set by the entity using the method. The lower the value, the more often the alternative update step will be used, which can lead to a slower convergence, but it is a trade-off that can not always be made due to the models derivative.
 
 \begin{algorithm}
     \caption{Newton's Method for Counterfactual Explanations}
@@ -386,7 +437,7 @@ We can now obtain the counterfactuals by iteratively applying the Newton-Raphson
             \State $\mathbf{fpl} \gets \textsc{FplFunc}(\mathbf{p}_{\text{new}},\lambda)$
             \State $J \gets \text{Jacobian}\!\bigl(\textsc{FplFunc},
                                 (\mathbf{p}_{\text{new}},\lambda)\bigr)$
-            \If{$\Vert J_{\lambda}\Vert_{\infty}<\varepsilon$} \Comment{ill-conditioned}
+            \If{$\Vert J_{\lambda}\Vert_{\infty}<\varepsilon$}\label{lst:line_norm} \Comment{ill-conditioned}
                 \State $\delta \gets thres\_term\ \cdot
                         \Bigl[\frac{\nabla M(\mathbf{p}_{\text{new}})}{|\nabla M(\mathbf{p}_{\text{new}})|},\;0\Bigr]$
             \Else
@@ -437,7 +488,7 @@ discussions of termination for Newton‐type methods can be found in
 It is important to compare the algorithm with other state-of-the-art methods in the literature to evaluate its performance and effectiveness. We will use several metrics to evaluate the algorithm, including some of the properties highlighted earlier. The datasets used for the evaluation of the algorithm are the following:
 \begin{itemize}
   \item \textbf{Loan}~\cite{kaggleLoan1}: $255\,347$ credit
-        applications with $17$ predictive attributes (8 integer, 2 continuous and 7 categorical).  Our experiments use two subsets with $8$ features (some of the actionable numerical features) and $24$ features (with one-hot encoding).
+        applications with $17$ predictive attributes (8 integer, 2 continuous and 7 categorical).  Our experiments use two subsets with $8$ features (some of the actionable numerical features) and $24$ features (with one-hot encoding). Even though out model is not designed to work with categorical features yet, we can use it to evaluate efficiency metrics with datasets with more featuresx.
   \item \textbf{Spambase}~\cite{spambase}: $4\,601$ e-mail messages described by $57$ continuous TF–IDF word‐frequency features plus one binary target. 
   \item \textbf{Santander Customer Transaction}~\cite{santander}:
         $200\,000$ customer records with $200$ continous attributes.
@@ -446,28 +497,26 @@ It is important to compare the algorithm with other state-of-the-art methods in 
 \end{itemize}
 
 \subsection{Validity}\label{sec:validity}
-Validity is the property in counterfactual explanations that measures whether the counterfactual changes the classification output of the model. It is the most important property of counterfactual explanations, as it is the one that ensures that the counterfactual is actually a counterfactual. In our method, we ensure validity by using the Lagrangian multiplier in the optimization problem. The Lagrangian multiplier is used to enforce the condition that the classification output changes, which is the condition for a counterfactual to be valid.
+Validity is the property in counterfactual explanations that measures whether the counterfactual changes the classification output of the model. It is the most important property of counterfactual explanations, as it is the one that ensures that the counterfactual is actually a counterfactual. In our method, we ensure validity by using the Lagrangian multiplier in the optimization problem. The Lagrangian multiplier is used to enforce the condition that the classification output changes, which is the condition for a counterfactual to be valid. Our methods correctly finds the counterfactuals that change the classification output for all of the instances in the test set.
 
 \subsection{Similarity}\label{sec:similarity}
-Similarity is the property in counterfactual explanations that measures how close the counterfactual is to the original instance. There are many ways in which we can measure similarity. Some methods use the  \emph{L1} norm whole others use the \emph{L2} norm, which is the one we are using in our method. We claim that our method obtains the most similar counterfactual to the original instance given that the classification output changes. This is because Newton's optimization methods finds the solution to \eqref{eq:deriv}, finding the x and lambda in which there is a critical point of the Lagrangian function~\eqref{eq:lagrange}. We have to first ensure that the solution given is a local minimum
-and not a local maximum or a saddle point. 
+Similarity is the property in counterfactual explanations that measures how close the counterfactual is to the original instance. There are many ways in which we can measure similarity. Some methods use the \emph{L1} norm whole others use the \emph{L2} norm, which is the one used in our method. We claim that our method obtains the most similar counterfactual to the original instance given that the classification output changes. This is because Newton's optimization methods finds the solution ($\mathbf{x}$, $\lambda$) to \eqref{eq:deriv} in which there is a critical point of the Lagrangian function~\eqref{eq:lagrange}. To claim this, the solution given must be a local minimum and not a local maximum or a saddle point. 
 
-For this we will apply a grid check of the distances of points close the solution found. It is crucial to note that that the points evaluated have to fulfill the condition of changing the classification output. Checking this grid around the solution found, we can ensure that the solution is a minimum and not a maximum or a saddle point. If the solution is a minimum, then the distance between the original instance and the counterfactual is the smallest possible distance that changes the classification output. This means that our method finds the most similar counterfactual to the original instance given that the classification output changes. When enforcing the similarity property with integers, we do the same but with rounding the pertinent features to the closest integer.
+For this we will apply a grid check of the distances of points close the solution found. It is crucial to note that that the points evaluated have to fulfill the condition of changing the classification output. When checking the distances of the points in the grid, they all are greater than the distance for the solution found, meaning that it is in fact a minimum. This means that the method finds the most similar counterfactual to the original instance given that the classification output changes. When enforcing the similarity property and the integer regularizer is applied, the integer features in the grid values are rounded off.
 
-Newton's method is designed to obtain these critical points, and we have ensured that the solution found is a local minimum. We can also check to see if it is the global minimum with the same technique, but we cannot guarantee it, as we don't have the computing power to check the entire space of possibilities.
+Newton's method is designed to obtain these critical points, and we have ensured that the solution found is a local minimum. We can also check to see if it is the global minimum with the same technique, but we cannot guarantee it, as we do not have the computing power to check the entire space of possibilities.
 
 \subsection{Plausibility}\label{sec:plausibility}
-Plausibility is often treated informally in counterfactual-explanation work. It is not yet a well defined metric and many methods lack a way of justifying that property ~\cite{plausibility}. This paper proposes as well a way of checking for invalid or bad counterfactuals, which are those that are too dissimilar to the original data distribution. They propose to use methods like Local Outlier Factor~\cite{lof} to check whether the counterfactuals are in-distribution or not. 
+Plausibility is often treated informally in counterfactual-explanation work. It is not yet a well defined metric and many methods lack a way of justifying that property. In ~\cite{plausibility}, they use the Local Outlier Factor~\cite{lof} to check whether the counterfactuals are in-distribution or not, checking for invalid or bad counterfactuals in terms of plausibility.
 
-We assessed each generated counterfactual with two sanity checks. The first one is checking whether the counterfactual is \emph{plausible} in the sense of being within the empirical bounds of the training data, checking if its variables are bigger than their minimum value in the dataset and smaller than their maximum. The second one checks whether it is \emph{in-distribution} according to the LOF model fitted on the training set.
+We assessed each generated counterfactual with two sanity checks. The first one is checking whether the counterfactual is \emph{plausible}, in the sense of being within the empirical bounds of the training data, checking if its variables are bigger than their minimum value in the dataset and smaller than their maximum. The second one checks whether it is \emph{in-distribution} according to the LOF model fitted on the training set.
 
 Both conditions were true for every record in the test set, indicating that the data respect domain bounds and exhibit no density anomalies under LOF (using 20 neighbours and $\alpha = 0.1$).
 
-
 \subsection{Efficiency}\label{sec:efficiency}
-Efficiency is a big part of any algorithm. It is one of the desired properties of any counterfactual explanation method. We can analyse our method in terms of efficiency by focusing on the possible bottlenecks of the algorithm. The main bottleneck of the algorithm is the computation of the Hessian matrix, which is done using PyTorch's autograd. As we mentioned earlier, it is not a problem for now, as we don't work with very big datasets and we only use a subset of the features. The other bottleneck is the number of iterations needed to reach the optimal solution. This is something that we can control by setting a maximum number of epochs. When trying out the algorithm, we found that the number of epochs needed to reach the optimal solution is usually around 5-15 epochs, depending on if we are applying the integer regularizer or not. We have decided to put a maximum of 100 epochs just in case, but when reaching that number of epochs in past iterations of the algorithm, there was something wrong that needed to be fixed; and either way when reaching that number of epochs, update step was too small to make a difference.
+Efficiency is a big part of any algorithm. It is one of the desired properties of any counterfactual explanation method. We can analyse our method in terms of efficiency by focusing on the possible bottlenecks of the algorithm. The main bottleneck of the algorithm is the computation of the Hessian matrix, which is done using PyTorch's autograd. As we mentioned earlier, it is not a problem for now, as we don't work with very big datasets and we only use a subset of the features. The other bottleneck is the number of iterations needed to reach the optimal solution. This is something that we can control by setting a maximum number of epochs. When trying out the algorithm, we found that the number of epochs needed to reach the optimal solution is usually around 5-15 epochs, depending on if we are applying the integer regularizer or not. We have decided to put a maximum of 100 epochs just in case, but when reaching that number of epochs in previous modifications of the algorithm, there was something wrong that needed to be fixed; and either way when reaching that number of epochs, the update step was too small to make a difference.
 
-When comparing the efficiency of our method with other state-of-the-art methods, we found that our method is much more efficient than most of them. For example, DiCE~\cite{dice} takes around 0.4s to output a counterfactual, SGNCE~\cite{sgnce} takes around 20-30s to output a counterfactual, while our method takes on average 0.014s to output a counterfactual. 
+When comparing the efficiency of our method with other state-of-the-art methods, we found that our method is much more efficient than most of them. For example, DiCE~\cite{dice} takes around 0.4s to output a counterfactual, SGNCE~\cite{sgnce} takes around 20-30s to output a counterfactual, while our method takes on average 0.014-0.16s to output a counterfactual, depending on the number of features. 
 
 We have analysed the efficiency of our method in terms of time and number of epochs needed to reach the optimal solution for different number of features, to check for the scalability of the algorithm.
 
@@ -495,8 +544,6 @@ We have analysed the efficiency of our method in terms of time and number of epo
 
 \begin{table}[H]
     \centering
-    
-    
     \begin{tabular}{lcc}
         \textbf{Features} & \textbf{\ding{55} Integer} & \textbf{\ding{51} Integer}\\
         % \textbf{Features} & \textbf{✗ Integer} & \textbf{✓ Integer}\\
@@ -518,25 +565,55 @@ Adding the integer regularization increases the runtime in $\approx 30\text{-}50
 delivers a counterfactual in well under a third of a second, keeping the
 method responsive for interactive use.
 
-It is important to note that the experiments with $8$ and $24$ features come from a loan dataset~\cite{kaggleLoan1}, the $57$-feature point corresponds to the Spambase dataset ~\cite{spambase}, and the $100$ and $200$ settings belong to the Santander Customer Transaction Prediction dataset ~\cite{santander}.  
+It is important to note that the experiments with $8$ and $24$ features come from a loan dataset~\cite{kaggleLoan1}, the $57$-feature point corresponds to the Spambase dataset ~\cite{spambase}, and the $100$ and $200$ settings belong to the Santander Customer Transaction Prediction dataset ~\cite{santander}. This explains the relatively big change in the average epochs from $100$-$200$ epochs to $8$-$24$ epochs: the dataset makes a difference in the number of epochs needed to reach the optimal solution. As we mentioned in Section~\ref{sec:obtaining_counterfactuals}, the threshold for using the alternative update step is dataset dependent, and therefore, the number of epochs needed to reach the optimal solution is also dataset dependent. For the 100 and 200 features, a smaller threshold was used, which explains the smaller number of epochs needed to reach the optimal solution. 
 
-This explains the relatively big change in the average epochs from 100-200 epochs to 8-24 epochs: the dataset makes a difference in the number of epochs needed to reach the optimal solution. 
+Across all settings the optimiser finds a feasible solution in $4$-$11$ epochs, far below the conservative cap of $100$.  Integer regularisation increases the count by roughly two epochs on average, but the absolute numbers remain very small (Figure~\ref{fig:time_comparison} illustrates the resulting trade-off). The proposed method delivers a counterfactual in less than 0.25\,s for inputs with up to \textbf{200 features}, converging in less than gradient steps even when discrete constraints are enforced.
 
-Across all settings the optimiser finds a feasible solution in $4\text{-}11$ epochs, far below the conservative cap of $100$.  Integer regularisation increases the count by roughly two epochs on average, but the absolute numbers remain very small (Figure~\ref{fig:time_comparison} illustrates the resulting trade-off). The proposed method delivers a counterfactual in less than 0.25\,s for inputs with up to \textbf{200 features}, converging in less than gradient steps even when discrete constraints are enforced.  Combined with the stability improvements reported in Section~\ref{sec:stability}, these results confirm that the algorithm is both \emph{fast}, \emph{scalable} and , making it well suited for real-time recourse in practical applications.
+\subsection{Stability}\label{sec:stability}
+Stability evaluates how sensitively our explainer reacts to small variations in the input. Formally ~\cite{bodria2023benchmarking}, given an instance $\mathbf{x}$ and its neighbourhood $\mathcal{N}_x$, the metric measures the average distance between the set of counterfactuals returned for $\mathbf{x}$ and those obtained for every $\mathbf{z}\!\in\!\mathcal{N}_x$.  If two very similar instances receive vastly different counterfactual explanations, the explainer is deemed \textit{unstable}. Conversely, a value close to~$1$ means that nearby points are mapped to almost identical counterfactuals, signalling robust and trustworthy behaviour. The formula used to calculate the stability is:
+\begin{equation}
+    max \frac{\|e_x - e_{x'}\|}{\|x - x'\|},\, {\forall x' \in \mathcal{N}_x}
+\end{equation}
 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lcc}
+        \textbf{Features} & \textbf{\ding{55} Integer} & \textbf{\ding{51} Integer}\\
+        % \textbf{Features} & \textbf{✗ Integer} & \textbf{✓ Integer}\\
+        \midrule
+        loan~\cite{kaggleLoan1}  & $0.9414 \pm 0.0318$ & $2.5196 \pm 1.7558$\\
+        spam~\cite{spambase} & $0.7968 \pm 0.1320$ & $0.8119 \pm 0.1326$\\
+        santander~\cite{santander} & $0.9948 \pm 0.0072$ & $0.9951 \pm 0.0068$\\
+        \bottomrule
+    \end{tabular}
+    \caption{Average stability per dataset using neural networks} \label{tab:stab}
+\end{table}
+Table~\ref{tab:stab} reports the average stability (and its standard deviation) obtained with our neural-network explainer on the three benchmark datasets over 176 instances. The integer column correspond to calculating the metric using the integer regulariser described in Section~\ref{sec:discrete} and detailed in \autoref{alg:newton_counterfactual}.
+
+\paragraph{Loan dataset.}
+Without integer constraints the explainer is already stable ($0.94\pm0.03$), yet activating the discrete regulariser more than doubles the score to $2.52$ on average.  This dataset has a lot of integer features, so it explains the big difference in stability.
+
+\paragraph{Spam.}
+E-mail features are mostly continuous TF–IDF weights, so enforcing integrality has virtually no effect ($0.7968 \pm 0.1320$ \& $0.8119 \pm 0.1326$). The relatively low absolute figures indicate that slight textual changes (such as the addition or removal of a word) has very little effects on the counterfactual proposed.
+
+\paragraph{Santander.} Both variants achieve near-perfect stability ($\approx0.995$ with deviations $<\!0.01$), confirming that the carefully engineered numeric features already impose strong local smoothness. Discrete regularisation has no effect, as all attributes are continuous.
+
+Overall, the numbers confirm that the stability metric is dataset dependent. The little change in the stability for the Spam and Santander datasets and the big change in the Loan one suggests that the integer regularizer is much more unstable than the base counterfactual explainer, but overall it is fairly stable compared to other methods in the literature~\cite{bodria2023benchmarking}. Combined with the efficiency improvements reported in Section~\ref{sec:efficiency}, these results confirm that the algorithm is both \emph{fast}, \emph{scalable} and \emph{stable}, making it well suited for real-time recourse in practical applications.
 
 \subsection{Actionability} \label{sec:actionability}
 Like plausibility, actionability is not a well defined metric in the literature either. Actionability is defined as the property of a counterfactual explanation that measures whether the counterfactual can be acted upon by the user~\cite{guidotti2024counterfactual}. Like every explainer, this is one of the most important properties after validity, as the end user is the one that will act according to the counterfactual explanation. 
 
-One of the most important requisites for a counterfactual to be actionable is that the features that are changed are actually changeable by the user. For example, if we are trying to explain a loan application, the features that are changed should be those that the user can actually change, such as the income, the amount of debt, etc. No counterfactual explanation should change features that are not changeable by the user, such as the age, race, sex, etc. This poses no problem for our method, as we can select the features that we want to change in the counterfactual explanation by \emph{deactivating} the features that we don't want to change in the weight vector. 
+One of the most important requisites for a counterfactual to be actionable is that the features that are changed are actually changeable by the user. For example, if we are trying to explain a loan application, the features that are changed should be those that the user can actually change, such as the income, the amount of debt, etc. No counterfactual explanation should change features that are not changeable by the user, such as the race, sex, etc. This poses no problem for our method, as we can select the features that we want to change in the counterfactual explanation by \emph{deactivating} the features that we don't want to change in the weight vector. 
 
-Another important aspect of actionability is being able to generate counterfactuals that are capable of yielding integer values for discrete features. For example, a loan term feature or the number of credit lines cannot take continuous values, so the counterfactual explanation should generate integer values for those features. In our method, we can enforce this by using the regularizer explained in Section~\ref{sec:discrete}, which penalizes the distance function for discrete features and ensures that the counterfactuals generated will have integer values for those features by rounding them to the closest integer when the optimization process is close to the optimal solution.
+Another important aspect of actionability is being able to generate counterfactuals that are capable of yielding integer values for discrete features. For example, a loan term feature or the number of credit lines cannot take decimal values, so the counterfactual explanation should generate integer values for those features. In our method, we can enforce this by using the regularizer explained in Section~\ref{sec:discrete}, which penalizes the distance function for discrete features and ensures that the counterfactuals generated will have integer values for those features by rounding them to the closest integer when the optimization process is close to the optimal solution.
 
 In other papers, as well as using the common definition of actionability, they have provided more extensive definitions and metrics for this property. One of the most mentioned is aligned with the diversity property~\cite{dice}. If a counterfactual method is able to generate multiple counterfactuals that are all valid and actionable, then it is considered to be more actionable than a method that can only generate one counterfactual. This is because the user can choose the counterfactual that is most suitable for their needs, and therefore the method is more flexible and adaptable to the user's needs. 
 
-Many methods in the literature are able to generate multiple counterfactuals by their original definition of the solution they provide. In our case, as we are solving an optimization problem, only one counterfactual is generated for a given instance and set of weights. However, by changing the weights, we can generate multiple counterfactuals that are all valid and actionable by the original definition. Other methods in the literature are able to generate multiple counterfactuals by using a diversity metric, but we have revolutionised the definition of diversity and actionability at the same time. Not only are we able to generate multiple counterfactuals, but we are able to generate the most suited counterfactual for the user, as they are able to specify which features are easier to change than others. This, aligned with the fulfillment of the similarity property, makes our method one of the most actionable methods in the literature. In summary, if an actionable counterfactual exists, meaning that the user is able to make the changes proposed, our method will find it by having a back-and-forth with the user.
+Many methods in the literature are able to generate multiple counterfactuals with the  solution they provide. In our case, as we are solving an optimization problem, only one counterfactual is generated for a given instance and set of weights. However, by changing the weights, we can generate multiple counterfactuals that are all valid and actionable by the original definition. Other methods in the literature are able to generate multiple counterfactuals by using a diversity metric, but we have revolutionised the definition of diversity and actionability at the same time. 
 
-Other definitions of actionability, introduced in~\cite{ustun2019actionable} is the availability or success-within-budget. This define the metric as the amount of counterfactuals that have a cost lower than a certain threshold. As we have mentioned, our method is able to find the minimum cost counterfactual, and because the metric is budget-dependent, we are able to fulfill it depending on the budget set. If the \emph{budget of change} is too low, the method will not be able to find an actionable counterfactual (by this definition), because it does not exist.
+Not only are we able to generate multiple counterfactuals, but we are able to generate the most suited counterfactual for the user, as they are able to specify which features are easier to change than others. This, aligned with the fulfillment of the similarity property, makes our method one of the most actionable methods in the literature. In summary, if an actionable counterfactual exists, meaning that the user is able to make the changes proposed, our method will find it by having an interactive and iterative back-and-forth \emph{dialogue} with the user.
+
+Other definitions of actionability include the availability or success-within-budget, introduced in ~\cite{ustun2019actionable}. This paper defines the metric as the amount of counterfactuals that have a cost lower than a certain threshold. As we have mentioned, our method is able to find the minimum cost counterfactual, and because the metric is budget-dependent, we are able to fulfill it depending on the budget set. If the \emph{budget of change} is too low, the method will not be able to find an actionable counterfactual (by this definition), because it does not exist.
 
 \begin{table}[ht]
     \centering
@@ -572,45 +649,9 @@ Other definitions of actionability, introduced in~\cite{ustun2019actionable} is 
     \label{tab:delta_loan}
 \end{table}
 
-In \autoref{tab:delta_income} and \autoref{tab:delta_loan} we can see how the percentage change in the Income and LoanAmount features changes depending on the weights of their respective features in the Loan Dataset~\cite{kaggleLoan1}. The first column is the weight of the Income feature, and the first row is the weight of the LoanAmount feature. The values in the table are the percentage change in the Income and LoanAmount features when changing the weights of the other features. We can see that when we increase the weight of the Income feature, the percentage change in the Income feature increases, while the percentage change in the LoanAmount feature decreases. 0.1 and 10 are the minimum and maximum weights we have decided but if needed we could increase the range of weights to see how the percentage change in the features changes. 
+In \autoref{tab:delta_income} and \autoref{tab:delta_loan} present examples of the personalization that can be achieved with weight changes. We can see how the percentage change in the Income and LoanAmount features changes depending on the weights of their respective features in the Loan Dataset~\cite{kaggleLoan1}. The first column is the weight of the Income feature, and the first row is the weight of the LoanAmount feature. We can see that when we increase the weight of the Income feature, the percentage change in the Income feature increases, while the percentage change in the LoanAmount feature decreases. 0.1 and 10 are the minimum and maximum weights we have decided but if needed we could increase the range of weights to see how the percentage change in the features changes. 
 
-We can also see that the percentage changes are very similar for proportional weights, meaning that the weights are not absolute and they work relative to each other. It is important to note that the values for the weights presented in the tables are not the only ones that can be used, but they are the ones that we have used for the experiments.
-    
-\subsection{Stability}\label{sec:stability}
-Stability evaluates how sensitively our explainer reacts to small variations in the input. Formally, given an instance $\mathbf{x}$ and its neighbourhood $\mathcal{N}_x$, the metric measures the average distance between the set of counterfactuals returned for $\mathbf{x}$ and those obtained for every $\mathbf{z}\!\in\!\mathcal{N}_x$.  If two very similar instances receive vastly different counterfactual explanations, the explainer is deemed \textit{unstable}. Conversely, a value close to~$1$ means that nearby points are mapped to almost identical counterfactuals, signalling robust and trustworthy behaviour. The formula they use to calculate the stability of the models in ~\cite{bodria2023benchmarking} is:
-\begin{equation}
-    max \frac{\|e_x - e_{x'}\|}{\|x - x'\|},\, {\forall x' \in \mathcal{N}_x}
-\end{equation}
-
-\footnote{This notion was introduced in the counterfactual-XAI literature as “if two instances are similar, their counterfactual explanations should be similar as well" ~\cite{bodria2023benchmarking}.}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{lcc}
-        \textbf{Features} & \textbf{\ding{55} Integer} & \textbf{\ding{51} Integer}\\
-        % \textbf{Features} & \textbf{✗ Integer} & \textbf{✓ Integer}\\
-        \midrule
-        loan~\cite{kaggleLoan1}  & $0.9414 \pm 0.0318$ & $2.5196 \pm 1.7558$\\
-        spam~\cite{spambase} & $0.7968 \pm 0.1320$ & $0.8119 \pm 0.1326$\\
-        santander~\cite{santander} & $0.9948 \pm 0.0072$ & $0.9951 \pm 0.0068$\\
-        \bottomrule
-    \end{tabular}
-    \caption{Average stability per dataset using neural networks} \label{tab:stab}
-\end{table}
-Table~\ref{tab:stab} reports the average stability (and its standard deviation) obtained with our neural-network explainer on the three benchmark datasets over 176 instances. The integer column correspond to calculating the metric using the integer regulariser described in Section~\ref{sec:discrete} and detailed in \autoref{alg:newton_counterfactual}.
-
-\paragraph{Loan dataset.}
-Without integer constraints the explainer is already stable ($0.94\pm0.03$), yet activating the discrete regulariser more than doubles the score to $2.52$ on average.  This dataset has a lot of integer features, so it explains the big difference in stability.
-
-\paragraph{Spam.}
-E-mail features are mostly continuous TF–IDF weights, so enforcing integrality has virtually no effect ($0.7968 \pm 0.1320$ \& $0.8119 \pm 0.1326$). The relatively low absolute figures indicate that slight textual changes (such as the addition or removal of a word) has very little effects on the counterfactual proposed.
-
-\paragraph{Santander.} Both variants achieve near-perfect stability ($\approx0.995$ with deviations $<\!0.01$), confirming that the carefully engineered numeric features already impose strong local smoothness. Discrete regularisation has virtually no effect because all attributes are continuous.
-
-Overall, the numbers confirm that the stability metric is dataset dependent. The little change in the stability for the Spam and Santander datasets and the big change in the Loan one suggests that the integer regularizer is much more unstable than the base counterfactual explainer, but overall it is fairly stable compared to other methods in the literature~\cite{bodria2023benchmarking}.
-
-% \subsection{Minimality}\label{sec:minimality}
-% Minimality is the property in counterfactual explanations that measures the number features that are changed in the counterfactual explanation. The more features that are changed, the less minimal the counterfactual explanation is. This is a property that we have not yet implemented in our method, but we have played around with adding a regularizer that penalizes the number of features that are changed and encourages the algorithm to find a counterfactual explanation that changes the least number of features possible. We propose the following regularizer to be added to the cost function:
+We can also see that the percentage changes are very similar for proportional weights, meaning that the weights are not absolute and they work relative to each other. It is important to note that the values for the weights presented in the tables are not the only ones that can be used, but they are the ones that we have used for the experiments. The rest of the weights are set to 1 for these experiments.
 
 \section{Website}\label{sec:website}
 To finally ground the algorithm in a real-world application, we have used the ~\cite{kaggleLoan1} dataset to create a simple interactive web application that allows users to input their data and obtain counterfactual explanations. The web application is built using \texttt{streamlit}, a python library that allows to create interactive web applications easily. This is only an example, the website is designed to by easily adaptable to any dataset which has been cleaned and preprocessed. 
@@ -706,18 +747,20 @@ N.~Ghatasheh.
 Anonymous.
 \newblock Point of View: Using Random Forest for credit risk models (Machine learning and Credit Risk: a suitable marriage?), 2019.
 
-\bibitem{neuralsens}
-J.~Pizarroso, J.~Portela, and A.~Mu\~noz.
-\newblock NeuralSens: Sensitivity Analysis of Neural Networks.
-\newblock {\em Journal of Statistical Software}, 102(7):1--36, 2022.
-
 \bibitem{fliege2009newton}
 J.~Fliege, L.~M.~G. Drummond, and B.~F. Svaiter.
 \newblock Newton's Method for Multiobjective Optimization.
 \newblock {\em SIAM Journal on Optimization}, 20(2):602--626, 2009.
 
+\bibitem{ypmanewton}
+Ypma, T. J. 
+\newblock Historical Development of the Newton-Raphson Method. SIAM Review, 37(4), 531–551. 
+\newblock 1995.
+\newblock \url{http://www.jstor.org/stable/2132904}
+
 \bibitem{lagrange}
-Vapnyarskii, I. B. (2001). [1994]
+Vapnyarskii, I. B. 
+\newblock 2001.
 \newblock 'Lagrange multipliers'. Encyclopedia of Mathematics.
 
 \bibitem{papakonstantinou2009historical}
@@ -725,7 +768,7 @@ J.~M. Papakonstantinou.
 \newblock Historical Development of the BFGS Secant Method and its Characterization Properties.
 \newblock 2009.
 
-\bibitem[Keane et al., 2021]{plausibility}
+\bibitem{plausibility}
 Keane, M.~T., Kenny, E.~M., Delaney, E., \& Smyth, B. (2021).
 \newblock \textit{If only we had better counterfactual explanations:
 Five key deficits to rectify in the evaluation of counterfactual XAI techniques}.

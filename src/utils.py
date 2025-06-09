@@ -70,6 +70,8 @@ class LoanDataset(Dataset):
 
 
 class DatasetMetadata:
+    """Container for dataset related information used across the project."""
+
     def __init__(self):
         self.path: str = None
         self.columns: np.ndarray = None  # original columns
@@ -162,6 +164,8 @@ def clean_data(
 
 
 def transform_onehot(raw_instance, original_columns, final_columns):
+    """One-hot encode a dictionary according to the provided columns."""
+
     encoded_instance = {col: 0 for col in final_columns}
 
     # Handle numerical columns (those in both original and final directly)
@@ -184,6 +188,8 @@ def transform_onehot(raw_instance, original_columns, final_columns):
 def transform_onehot_inverse(
     df: pd.DataFrame, metadata: DatasetMetadata
 ) -> pd.DataFrame:
+    """Revert one-hot encoded dataframe using the stored metadata."""
+
     result = df.copy()
     restored_cols = {}
 
@@ -209,15 +215,7 @@ def transform_onehot_inverse(
 
 
 def clean_instance(instance: dict, metadata: DatasetMetadata) -> torch.Tensor:
-    """
-    This function cleans the data by removing the rows with missing values.
-
-    Args:
-        df: dataframe with the data.
-
-    Returns:
-        dataframe without missing values.
-    """
+    """Scale and one-hot encode a single instance using given metadata."""
 
     instance = transform_onehot(instance, instance.keys(), metadata.columns)
 
@@ -234,6 +232,8 @@ def clean_instance(instance: dict, metadata: DatasetMetadata) -> torch.Tensor:
 def load_data(
     path: str, index: int = None, batch_size: int = 1024, get_sample: bool = False
 ) -> tuple[DataLoader, DataLoader, DataLoader, torch.Tensor, DatasetMetadata]:
+    """Load a CSV dataset and return dataloaders and metadata."""
+
     set_seed(42)
 
     df = pd.read_csv(path)

@@ -28,6 +28,8 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 
 
 class State:
+    """Mutable state used during the counterfactual search."""
+
     def __init__(self, model, metadata, max_epochs):
         self.model: LogisticModel = model
         self.metadata: DatasetMetadata = metadata
@@ -45,6 +47,7 @@ def distance(
     state: State = None,
     with_sum: bool = True,
 ):
+    """Compute a weighted squared distance between two instances."""
     # clamped_new = torch.clamp(new, scale_instance(state.metadata.min_values, state.metadata), scale_instance(state.metadata.max_values, state.metadata))
     cost = (original - new) ** 2 * weights
 
@@ -104,6 +107,8 @@ def distance(
 
 
 def unscale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    """Undo scaling of a single instance."""
+
     cols_to_unscale = instance[metadata.cols_for_scaler].reshape(1, -1)
     mean = torch.tensor(metadata.scaler.mean_)
     std = torch.tensor(metadata.scaler.scale_)
@@ -117,6 +122,8 @@ def unscale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace:
         return instance_clone
     
 def scale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    """Scale a single instance according to the metadata scaler."""
+
     cols_to_scale = instance[metadata.cols_for_scaler].reshape(1, -1)
     mean = torch.tensor(metadata.scaler.mean_)
     std = torch.tensor(metadata.scaler.scale_)
@@ -130,6 +137,8 @@ def scale_instance(instance: torch.Tensor, metadata: DatasetMetadata, inplace: b
         return instance_clone
     
 def round_instance(instance: torch.Tensor, metadata: DatasetMetadata):
+    """Round integer features of a scaled instance."""
+
     unscaled_person = unscale_instance(instance, metadata)
     unscaled_person[metadata.int_cols == 1] = torch.round(unscaled_person[metadata.int_cols == 1])
     person_new = scale_instance(unscaled_person, metadata)
@@ -137,6 +146,8 @@ def round_instance(instance: torch.Tensor, metadata: DatasetMetadata):
 
 
 def unscale_batch(batch: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    """Undo scaling for a batch of instances."""
+
     cols_to_unscale = torch.tensor(batch[:, metadata.cols_for_scaler], dtype=torch.float32)
     mean = torch.tensor(metadata.scaler.mean_, dtype=torch.float32)
     std = torch.tensor(metadata.scaler.scale_, dtype=torch.float32)
@@ -150,6 +161,8 @@ def unscale_batch(batch: torch.Tensor, metadata: DatasetMetadata, inplace: bool 
         return batch_clone
     
 def scale_batch(batch: torch.Tensor, metadata: DatasetMetadata, inplace: bool = False):
+    """Scale a batch of instances."""
+
     cols_to_scale = torch.tensor(batch[:, metadata.cols_for_scaler], dtype=torch.float32)
     mean = torch.tensor(metadata.scaler.mean_, dtype=torch.float32)
     std = torch.tensor(metadata.scaler.scale_, dtype=torch.float32)
@@ -163,6 +176,8 @@ def scale_batch(batch: torch.Tensor, metadata: DatasetMetadata, inplace: bool = 
         return batch_clone
     
 def round_batch(batch: torch.Tensor, metadata: DatasetMetadata):
+    """Round integer features in a batch of scaled instances."""
+
     unscaled_person = unscale_batch(batch, metadata)
     unscaled_person[metadata.int_cols == 1] = torch.round(unscaled_person[metadata.int_cols == 1])
     person_new = scale_batch(unscaled_person, metadata)
@@ -182,6 +197,7 @@ def newton_op(
     print_: bool = False,
     der = False
 ):
+    """Find a counterfactual instance using a Newton-like optimisation."""
     torch.manual_seed(0)
     output = model(person.unsqueeze(0))
 

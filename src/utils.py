@@ -93,13 +93,14 @@ class DatasetMetadata:
 
 
 def clean_data(
-    df: pd.DataFrame, metadata: DatasetMetadata, scale: True
+    df: pd.DataFrame, metadata: DatasetMetadata
 ) -> pd.DataFrame:
     """
     This function cleans the data by removing the rows with missing values.
 
     Args:
         df: dataframe with the data.
+        metadata: metadata information about the dataset.
 
     Returns:
         dataframe without missing values.
@@ -256,7 +257,7 @@ def load_data(
     # class_weights = torch.tensor(list(df[target_column].value_counts(normalize=True))[::-1])
     class_weights = torch.tensor([0.2, 0.8])
 
-    data = clean_data(df, metadata, target_column)
+    data = clean_data(df, metadata)
 
     if get_sample:
         distinct_outputs = sorted(data[target_column].unique())

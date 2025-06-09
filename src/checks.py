@@ -69,7 +69,7 @@ class Checks:
                     self.sorted_points = sorted_points
                     return False
                 
-        if not self.outlier_ckeck(self.dataset, person_new):
+        if not self.outlier_check(self.dataset, person_new):
             print("The new person is an outlier.")
             return False
         
@@ -183,7 +183,7 @@ class Checks:
             == person_new
         ).all().item()
     
-    def outlier_ckeck(
+    def outlier_check(
         self,
         dataset: torch.Tensor,
         person_new: torch.Tensor,

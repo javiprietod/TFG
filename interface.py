@@ -130,23 +130,23 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                         key=f"check_{col}",
                     )
             with col3:
-                if changeable.get(col, False):
+                if col in metadata.changeable_col_names:
                     log_val = st.slider(
                         "Weight (log10)",
-                        min_value=-1.0,
-                        max_value=1.0,
-                        value=math.log10( st.session_state.get(f"weight_{col}", 1.0) ),
+                        min_value=0.1,
+                        max_value=10.0,
+                        # value=math.log10( st.session_state.get(f"weight_{col}", 1.0) ),
+                        value=1.0,
                         step=0.05,          # res. ≈ 10^(0.05) ≈ 1.12
                         key=f"logweight_{col}",
                         help="-1 → easy to change | +1 → hard to change",
-                        disabled=not changeable[col],
                     )
-                    weight = 10 ** log_val
-                    weights_slider[col] = weight
+                    # weight = 10 ** log_val
+                    weights_slider[col] = log_val
 
                     # Guarda el valor real (lineal) en session_state
-                    st.session_state[f"weight_{col}"] = weight
-                    st.caption(f"{weight:.2f}")
+                    st.session_state[f"weight_{col}"] = log_val
+                    st.caption(f"{log_val:.2f}")
         # Once the user clicks the button, we collect the inputs and run inference
         if st.form_submit_button("Submit Application"):
             # Format data for your model (reshape or convert to DataFrame as needed)

@@ -418,31 +418,24 @@ When using the alternative update step for ill conditioned Hessians explained in
     ,\; $first\_time \gets true$
     ,\; $thres\_term \gets \text{threshold} - M(\mathbf{p}_{\text{new}})$
     \While{\textbf{continue} \textbf{and} epochs $<$ max\_epochs}
-        \If{$\sum (w \neq 0)=1$} \Comment{single active feature}
-            \State $\delta \gets 
-                \Bigl[\dfrac{M(\mathbf{p}_{\text{new}})
-                        -\text{threshold}}
-                    {\nabla M(\mathbf{p}_{\text{new}})} ,\,0\Bigr]$
+        \If{$|thres\_term| < 0.1 \land first\_time \land \text{epochs} > 1$} \Comment{close to threshold}
+            \State $reg\_int \gets true$
+            \State $first\_time \gets False$
+        \EndIf
+        \State Reset gradients of $\mathbf{p}_{\text{new}}$ and $\lambda$
+        \Function{$\textsc{FplFunc}(\mathbf{x},\lambda)$} {}\Comment{first-order derivative of Lagrangian}
+            \State $g_{d} \gets \nabla C(\mathbf{x})$
+            ,\;$g_{r} \gets \nabla M(\mathbf{x})$
+            \State \Return $\bigl[g_{d}-\lambda\,g_{r},\;(\text{threshold}-M(\mathbf{x}))\bigr]$
+        \EndFunction
+        \State $\mathbf{fpl} \gets \textsc{FplFunc}(\mathbf{p}_{\text{new}},\lambda)$
+        \State $J \gets \text{Jacobian}\!\bigl(\textsc{FplFunc},
+                            (\mathbf{p}_{\text{new}},\lambda)\bigr)$
+        \If{$\Vert J_{\lambda}\Vert_{\infty}<\varepsilon$}\label{lst:line_norm} \Comment{ill-conditioned}
+            \State $\delta \gets thres\_term\ \cdot
+                    \Bigl[\frac{\nabla M(\mathbf{p}_{\text{new}})}{|\nabla M(\mathbf{p}_{\text{new}})|},\;0\Bigr]$
         \Else
-            \If{$|thres\_term| < 0.1 \land first\_time \land \text{epochs} > 1$} \Comment{close to threshold}
-                \State $reg\_int \gets true$
-                \State $first\_time \gets False$
-            \EndIf
-            \State Reset gradients of $\mathbf{p}_{\text{new}}$ and $\lambda$
-            \Function{$\textsc{FplFunc}(\mathbf{x},\lambda)$} {}\Comment{first-order derivative of Lagrangian}
-                \State $g_{d} \gets \nabla C(\mathbf{x})$
-                ,\;$g_{r} \gets \nabla M(\mathbf{x})$
-                \State \Return $\bigl[g_{d}-\lambda\,g_{r},\;(\text{threshold}-M(\mathbf{x}))\bigr]$
-            \EndFunction
-            \State $\mathbf{fpl} \gets \textsc{FplFunc}(\mathbf{p}_{\text{new}},\lambda)$
-            \State $J \gets \text{Jacobian}\!\bigl(\textsc{FplFunc},
-                                (\mathbf{p}_{\text{new}},\lambda)\bigr)$
-            \If{$\Vert J_{\lambda}\Vert_{\infty}<\varepsilon$}\label{lst:line_norm} \Comment{ill-conditioned}
-                \State $\delta \gets thres\_term\ \cdot
-                        \Bigl[\frac{\nabla M(\mathbf{p}_{\text{new}})}{|\nabla M(\mathbf{p}_{\text{new}})|},\;0\Bigr]$
-            \Else
-                \State $\delta \gets J^{-1} \cdot \mathbf{fpl}$ \Comment{Newton step}
-            \EndIf
+            \State $\delta \gets J^{-1} \cdot \mathbf{fpl}$ \Comment{Newton step}
         \EndIf
         \State $\mathbf{p}_{\text{new}}[w_{active}] \gets 
                 \mathbf{p}_{\text{new}}[w_{active}]- \delta[w_{active}] $

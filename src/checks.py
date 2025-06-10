@@ -244,6 +244,6 @@ class Checks:
                     person_close_new, _ = newton_op(self.model, person_close, self.metadata, weights, 0.2, reg_int=self.reg_int, reg_clamp=self.reg_clamp, print_=False, der = False)
                     diff_factor = distance(person_new, person_close_new, weights) / distance(person, person_close, weights)
                     max_diff_factor = max(max_diff_factor, diff_factor)
-        self.diff_factors.append(max_diff_factor.item())
+        self.diff_factors.append(max_diff_factor)
         return True
             

@@ -67,7 +67,7 @@ def distance(
     """
     if state:
         if torch.any(original != new) and state.reg_vars:
-            epsilon = 30  # TODO: Pensar si esto es como la temperatura
+            epsilon = 30
 
             cost += sum(
                 [
@@ -225,7 +225,7 @@ def newton_op(
                 )[0][weights != 0]
                 delta = torch.cat(
                     (
-                        (
+                        0.3 * (
                             model(person_new.unsqueeze(0))[0][metadata.good_class]
                             - state.metadata.threshold
                         )/ derivative,
@@ -233,9 +233,9 @@ def newton_op(
                     ),
                     dim=0,
                 )
-
+                # lr = 0.6
+                # delta_threshold /= 4
             else:
-
                 if (abs(thres_term) < 0.1) and first_time and state.epochs > 1:
                     ###################################################
                     ### Se estamos medio cerca de la solución, aplicamos reg_int y eliminamos reg_vars
@@ -315,7 +315,6 @@ def newton_op(
                     
 
                 else:
-                    # lr = np.exp(-0.05 * state.epochs)
                     jac = torch.cat(
                         (jac_tuple[0][:, weights != 0], jac_tuple[1].unsqueeze(-1)),
                         dim=1,

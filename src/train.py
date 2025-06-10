@@ -79,7 +79,6 @@ def main(path: str, model_name: str = None) -> None:
     # save model
     save_model(model, name)
 
-    # TODO: quitar
     accuracy, f1_score, confusion_matrix = main_ev(path, name)
     print(f"Accuracy: {accuracy}")
     print(f"F1 Score: {f1_score}")

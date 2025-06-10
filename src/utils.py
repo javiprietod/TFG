@@ -12,7 +12,6 @@ import random
 import yaml
 
 
-# TODO : Change doc strings
 class LoanDataset(Dataset):
     """
     This class is the dataset loading the data.

@@ -23,6 +23,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 
 
 class Checks:
+    """Collection of post-hoc checks for generated counterfactuals."""
     def __init__(self, model: LogisticModel, metadata: DatasetMetadata, reg_int: bool = False, reg_clamp: bool = False, noise: float = 1e-3, n_points: int = 10000, noise_int: float = 2.5, dataset: torch.Tensor = None):
         
         self.model = model
@@ -69,7 +70,7 @@ class Checks:
                     self.sorted_points = sorted_points
                     return False
                 
-        if not self.outlier_ckeck(self.dataset, person_new):
+        if not self.outlier_check(self.dataset, person_new):
             print("The new person is an outlier.")
             return False
         
@@ -85,6 +86,7 @@ class Checks:
         person_new: torch.Tensor,
         weights: torch.Tensor,
         ):
+        """Check minimality of a continuous counterfactual candidate."""
         ranges = [
             np.linspace(
             person_new[i].item() - 0.01 * (self.metadata.max_values[i] - self.metadata.min_values[i]),
@@ -119,6 +121,7 @@ class Checks:
         person_new_int: torch.Tensor,
         weights: torch.Tensor,
     ):
+        """Check minimality for counterfactuals with integer features."""
         w = ((weights != 0) & ~self.metadata.int_cols) * weights
         noise_tensor = np.random.uniform(
             -self.noise, self.noise, (self.n_points, person_new_int.shape[0])
@@ -164,6 +167,7 @@ class Checks:
       person: torch.Tensor,
       person_new: torch.Tensor,
     ):
+        """Return True if person_new changes the model prediction."""
         return (
             (self.model(person_new.unsqueeze(0))[0][self.metadata.good_class].item() >= 0.5)
             != (self.model(person.unsqueeze(0))[0][self.metadata.good_class].item() >= 0.5)
@@ -173,7 +177,7 @@ class Checks:
         self,
         person_new: torch.Tensor,
     ):
-        # Check if the new person is plausible
+        """Check whether the new instance lies inside the allowed domain."""
         return (
             torch.clamp(
                 person_new,
@@ -183,7 +187,7 @@ class Checks:
             == person_new
         ).all().item()
     
-    def outlier_ckeck(
+    def outlier_check(
         self,
         dataset: torch.Tensor,
         person_new: torch.Tensor,
@@ -209,6 +213,8 @@ class Checks:
         return outliers[-1] == 1
     
     def stability_check_one_var(self, person, person_new, weights):
+        """Assess model stability when varying one feature at a time."""
+
         max_diff_factor = 0
         for perc_fator in [1, 2, 5]:
             for i, scaled in enumerate(self.metadata.cols_for_scaler):
@@ -226,6 +232,8 @@ class Checks:
     
 
     def stability_check_global(self, person, person_new, weights):
+        """Assess global stability around the generated counterfactual."""
+
         max_diff_factor = 0
         num_points = 10
         for perc_fator in [1]:

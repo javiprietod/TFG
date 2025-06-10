@@ -69,6 +69,8 @@ class LoanDataset(Dataset):
 
 
 class DatasetMetadata:
+    """Container for dataset related information used across the project."""
+
     def __init__(self):
         self.path: str = None
         self.columns: np.ndarray = None  # original columns
@@ -92,13 +94,14 @@ class DatasetMetadata:
 
 
 def clean_data(
-    df: pd.DataFrame, metadata: DatasetMetadata, scale: True
+    df: pd.DataFrame, metadata: DatasetMetadata
 ) -> pd.DataFrame:
     """
     This function cleans the data by removing the rows with missing values.
 
     Args:
         df: dataframe with the data.
+        metadata: metadata information about the dataset.
 
     Returns:
         dataframe without missing values.
@@ -161,6 +164,8 @@ def clean_data(
 
 
 def transform_onehot(raw_instance, original_columns, final_columns):
+    """One-hot encode a dictionary according to the provided columns."""
+
     encoded_instance = {col: 0 for col in final_columns}
 
     # Handle numerical columns (those in both original and final directly)
@@ -183,6 +188,8 @@ def transform_onehot(raw_instance, original_columns, final_columns):
 def transform_onehot_inverse(
     df: pd.DataFrame, metadata: DatasetMetadata
 ) -> pd.DataFrame:
+    """Revert one-hot encoded dataframe using the stored metadata."""
+
     result = df.copy()
     restored_cols = {}
 
@@ -208,15 +215,7 @@ def transform_onehot_inverse(
 
 
 def clean_instance(instance: dict, metadata: DatasetMetadata) -> torch.Tensor:
-    """
-    This function cleans the data by removing the rows with missing values.
-
-    Args:
-        df: dataframe with the data.
-
-    Returns:
-        dataframe without missing values.
-    """
+    """Scale and one-hot encode a single instance using given metadata."""
 
     instance = transform_onehot(instance, instance.keys(), metadata.columns)
 
@@ -233,6 +232,8 @@ def clean_instance(instance: dict, metadata: DatasetMetadata) -> torch.Tensor:
 def load_data(
     path: str, index: int = None, batch_size: int = 1024, get_sample: bool = False
 ) -> tuple[DataLoader, DataLoader, DataLoader, torch.Tensor, DatasetMetadata]:
+    """Load a CSV dataset and return dataloaders and metadata."""
+
     set_seed(42)
 
     df = pd.read_csv(path)
@@ -255,7 +256,7 @@ def load_data(
     # class_weights = torch.tensor(list(df[target_column].value_counts(normalize=True))[::-1])
     class_weights = torch.tensor([0.2, 0.8])
 
-    data = clean_data(df, metadata, target_column)
+    data = clean_data(df, metadata)
 
     if get_sample:
         distinct_outputs = sorted(data[target_column].unique())

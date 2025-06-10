@@ -3,7 +3,19 @@ from torch import nn
 
 
 class LogisticModel(nn.Module):
+    """Simple feed-forward logistic regression style model."""
+
     def __init__(self, input_dim: int, hidden_sizes: list[int]):
+        """Create the network architecture.
+
+        Parameters
+        ----------
+        input_dim : int
+            Number of input features.
+        hidden_sizes : list[int]
+            Sizes of the hidden layers.
+        """
+
         super().__init__()
         self.layers = []
         self.input_dim = input_dim
@@ -26,4 +38,6 @@ class LogisticModel(nn.Module):
         self.model = nn.Sequential(*self.layers)
 
     def forward(self, inputs):
+        """Run a forward pass of the network."""
+
         return self.model(inputs)

@@ -11,6 +11,5 @@ torch==2.1.1
 torchvision==0.16.1
 tqdm==4.66.1
 types-requests==2.31.0.10
-pytest==7.4.4
 pytest-order==1.2.0
-yaml==6.0.2
+yaml==6.0

@@ -1,37 +1,88 @@
-# TFG
-Neural networks are increasingly employed in the banking sector for tasks ranging from credit scoring to fraud detection. Despite their powerful predictive capabilities, the opacity of neural network models poses significant challenges for their interpretability. This project aims to bridge the gap between complex neural network architectures and their practical interpretation by developing a comprehensive methodology utilizing state-of-the-art Explainable AI (XAI) techniques. 
+# TFG: Counterfactual Explanations for Banking Neural Networks
 
-## Algorithm requirements
-To be able to use this algorithm, datasets and models need to fulfill some requirements:
-* Datasets
-    - Cleaned beforehand. A few cleaning security measures are put in place, like droping duplicates, rows that have missing values, ID columns and columns that only have one value; just in case
-    - Include the target column
+This repository implements a methodology for generating **counterfactual explanations** of differentiable classifiers (neural nets, logistic regression) applied to banking use-cases such as loan default prediction. Given a “black-box” model and a single input, our method finds the minimal, actionable changes to flip its decision.
 
-* Model (if necessary)
-    - Differentiable model, therefore no trees are accepted.
 
-## How to run the programs
-To run the programs, you will need to install the libraries provided in the requirements.txt file. You can do this by running the following command:
-``` cmd
-pip install -r requirements.txt
+## 🚀 Installation
+
+1. Clone the repo:
+
+   ```bash
+   git clone https://github.com/javiprietod/TFG.git
+   cd TFG
+   ```
+2. Create and activate a virtual environment (optional but recommended):
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+3. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
+
+## 🔧 Configuration
+
+All dataset metadata (paths, target column names, good\_class label, immutable features, weight masks, etc.) live in **datasets.yaml**.
+Models and training hyperparameters are in **train.yaml**.
+
+---
+
+## 📊 Data
+
+Three sample banking datasets are included:
+
+* **Loan\_default.csv** — Public “loan default” dataset (Kaggle).
+* **santander.csv** — Santander customer default data.
+* **spambase.csv** — UCI “spam” dataset (tabular features).
+
+Each CSV expects a binary target (0/1) column, with 1 = “good” (non-default) by default.
+
+---
+
+## 🏋️‍♂️ Training
+
+Train a neural‐network or logistic model:
+
+```bash
+python -m src.train data/Loan_default.csv
 ```
 
-There are different programs that you can run:
-- `train.py`: This file trains a model with the settings in `train.yaml`. This model is composed of layers with activations in between them. To execute it, run the command:
-```cmd
-python -m src.train
+This uses hyperparameters from **train.yaml**, logs to TensorBoard under `runs/`, and saves a TorchScript model.
+
+---
+
+## 🔍 Counterfactual Explanations
+
+Generate counterfactuals (minimal actionable changes) for a single instance:
+
+```bash
+python -m src.counterfactual --data data/Loan_default.csv --index 42 --model runs/model_small
 ```
-- `counterfactual.py`: This file runs the counterfactual system on an specific index of the dataset. To execute it, run the command:
-```cmd
-python -m src.counterfactual
-```
-- `interface.py`: This file contains the code for a user interface in which the user can interact with many of the functionalities of the counterfactual system. You can use a model you have previously trained or you can provide the dataset and we will train a basic model for you. To execute it, run the command:
-```cmd
+
+Or launch the Streamlit interface:
+
+```bash
 streamlit run interface.py
 ```
-and follow the instructions in the terminal.
 
-## Datasets
-The datasets used in this repository are:
-1. [Loan Dataset](https://www.kaggle.com/datasets/nikhil1e9/loan-default):
+Follow the web form to upload an instance, adjust feature-change weights, and view the recommended changes.
 
+---
+
+## 📑 Documentation
+
+* **documentacion/tfg.pdf** — Final project write-up.
+* **documentacion/images/** — Diagrams, process charts, website screenshots.
+* **notebooks/** — Exploratory analyses (gradient‐based counterfactual, logistic demo).
+
+---
+
+## 📄 License
+
+This project is released under the MIT License. See **LICENSE** for details.
+Feel free to adapt and extend for your own banking explainability needs!

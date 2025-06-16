@@ -21,7 +21,7 @@ from src.counterfactual import unscale_instance, scale_instance, newton_op
 from src.train import main as main_train
 import torch
 import pandas as pd
-import math
+
 
 # str to sympy
 from src.models import LogisticModel
@@ -99,14 +99,14 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                         else 0
                     )
                     inputs[col] = st.selectbox(
-                        f"Select {col}",
+                        "", #f"Select **{col}**",
                         options=options,
                         index=index,
                         key=f"input_{col}",
                     )
                 elif raw_df[col].dtype == "int64":
                     inputs[col] = st.number_input(
-                        f"Enter {col}",
+                        " ", # f"({int(raw_df[col].min())}, {int(raw_df[col].max())})", #f"Enter **{col}**",
                         min_value=int(raw_df[col].min()),
                         max_value=int(raw_df[col].max()),
                         value=int(default_val or raw_df[col].mean()),
@@ -115,7 +115,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                     )
                 else:  # float32
                     inputs[col] = st.number_input(
-                        f"Enter {col}",
+                        " ", # f"({float(raw_df[col].min())}, {float(raw_df[col].max())})", #f"Enter **{col}**",
                         min_value=float(raw_df[col].min()),
                         max_value=float(raw_df[col].max()),
                         value=float(default_val or raw_df[col].mean()),
@@ -145,6 +145,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                     # Guarda el valor real (lineal) en session_state
                     # st.session_state[f"weight_{col}"] = val
                     st.caption(f"{val:.2f}")
+            st.markdown("""---""")
         # Once the user clicks the button, we collect the inputs and run inference
         if st.form_submit_button("Submit Application"):
             # Format data for your model (reshape or convert to DataFrame as needed)
@@ -176,7 +177,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                     delta_threshold=0.2,
                     reg_int=True,
                     reg_clamp=True,
-                    print_=True,
+                    print_=False,
                 )
 
                 person_unscaled = unscale_instance(person, metadata)
@@ -214,6 +215,7 @@ if __name__ == "__main__":
     person: torch.Tensor
     metadata: DatasetMetadata
     df = pd.read_csv(filename)
-    samples, metadata = load_data(filename, get_sample=True)
+    samples, metadata = load_data(filename, get_sample=True, question_names=True)
 
     main(samples, model, metadata)
+    

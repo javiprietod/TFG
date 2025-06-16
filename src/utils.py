@@ -10,6 +10,9 @@ import pandas as pd
 import os
 import random
 import yaml
+from together import Together
+import ast
+import re
 
 
 class LoanDataset(Dataset):
@@ -230,14 +233,19 @@ def clean_instance(instance: dict, metadata: DatasetMetadata) -> torch.Tensor:
 
 
 def load_data(
-    path: str, index: int = None, batch_size: int = 1024, get_sample: bool = False
+    path: str, index: int = None, batch_size: int = 1024, get_sample: bool = False, question_names: bool = False
 ) -> tuple[DataLoader, DataLoader, DataLoader, torch.Tensor, DatasetMetadata]:
     """Load a CSV dataset and return dataloaders and metadata."""
 
     set_seed(42)
 
     df = pd.read_csv(path)
-
+    if question_names:
+        column_dictionary = change_variable_names(df)
+        # Rename columns in the dataframe
+        df.rename(columns=column_dictionary, inplace=True)
+    else:
+        column_dictionary = {col: col for col in df.columns}
     metadata = DatasetMetadata()
 
     metadata.path = path
@@ -245,8 +253,8 @@ def load_data(
     with open("datasets.yaml", "r") as file:
         datasets = yaml.safe_load(file)[metadata.path]
 
-    id_column = datasets["id_column"]
-    target_column = datasets["target_column"]
+    id_column = column_dictionary[datasets["id_column"]]
+    target_column = column_dictionary[datasets["target_column"]]
 
     # target column
     # search for the column that has only 1 and 0
@@ -272,7 +280,9 @@ def load_data(
     with open("datasets.yaml", "r") as file:
         datasets = yaml.safe_load(file)
 
+
     cols_for_mask = datasets[path]["weights"]
+    cols_for_mask = [column_dictionary[col] for col in cols_for_mask]
     metadata.changeable_col_names = cols_for_mask
     # create a mask for the columns
     col_mask = data.drop(target_column, axis=1).columns.isin(cols_for_mask)
@@ -350,6 +360,41 @@ def load_model(name: str) -> RecursiveScriptModule:
     model: RecursiveScriptModule = torch.jit.load(f"models/{name}.pt")
 
     return model
+
+def change_variable_names(dataset: pd.DataFrame):
+    client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+
+    # Prepare a prompt to generate short, user-friendly variable names for a form
+    columns = list(dataset.columns)
+    prompt = (
+        "Given the following dataset column names:\n"
+        f"{columns}\n"
+        "Suggest a short, user-friendly question for each column as it would appear in a form. Each question should be concise and clear and include a question mark at the end (?). "
+        "Return a Python dictionary mapping each original column name to its new label."
+    )
+
+    response = client.chat.completions.create(
+        model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],   
+    )
+    # Extract the code block containing the dictionary from the response
+    match = re.search(r"```python\n(.*?)\n```", response.choices[0].message.content, re.DOTALL)
+    if match:
+        code_str = match.group(1)
+        # Extract the dictionary assignment line
+        dict_match = re.search(r"column_labels\s*=\s*({.*})", code_str, re.DOTALL)
+        if dict_match:
+            column_labels = ast.literal_eval(dict_match.group(1))
+            print(column_labels)
+        # else:
+        #     column_labels = change_variable_names(dataset)
+    return column_labels
+
 
 
 def set_seed(seed: int) -> None:

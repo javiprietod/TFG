@@ -13,3 +13,4 @@ tqdm==4.66.1
 types-requests==2.31.0.10
 pytest-order==1.2.0
 PyYAML==6.0
+together==1.5.14

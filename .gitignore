@@ -25,3 +25,8 @@ models/*
 nohup.out
 
 __pycache__/
+
+.env
+
+# Jupyter Notebook checkpoints
+notebooks/

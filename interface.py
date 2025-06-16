@@ -55,6 +55,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
 
     # Read dataset for reference
     raw_df = pd.read_csv(metadata.path)
+    raw_df.rename(columns=metadata.question_columns, inplace=True)
     raw_df = raw_df.drop(columns=[metadata.target_column, metadata.id_column], errors="ignore")
     cols = raw_df.columns
     samples[metadata.cols_for_scaler_names] = metadata.scaler.inverse_transform(
@@ -99,28 +100,31 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                         else 0
                     )
                     inputs[col] = st.selectbox(
-                        "", #f"Select **{col}**",
+                        f"Select **{col}**",
                         options=options,
                         index=index,
                         key=f"input_{col}",
+                        label_visibility="hidden",
                     )
                 elif raw_df[col].dtype == "int64":
                     inputs[col] = st.number_input(
-                        " ", # f"({int(raw_df[col].min())}, {int(raw_df[col].max())})", #f"Enter **{col}**",
+                        f"Enter **{col}**",
                         min_value=int(raw_df[col].min()),
                         max_value=int(raw_df[col].max()),
                         value=int(default_val or raw_df[col].mean()),
                         step=1,
                         key=f"input_{col}",
+                        label_visibility="hidden"
                     )
                 else:  # float32
                     inputs[col] = st.number_input(
-                        " ", # f"({float(raw_df[col].min())}, {float(raw_df[col].max())})", #f"Enter **{col}**",
+                        f"Enter **{col}**",
                         min_value=float(raw_df[col].min()),
                         max_value=float(raw_df[col].max()),
                         value=float(default_val or raw_df[col].mean()),
                         step=0.1,
                         key=f"input_{col}",
+                        label_visibility="hidden"
                     )
             with col2:
                 if col in metadata.changeable_col_names:
@@ -194,11 +198,11 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
                 for i, col in enumerate(metadata.columns):
                     if changes[i] > 0:
                         st.write(
-                            f"- Increase {col} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f} (+{(person_new_unscaled[i].item() - person_unscaled[i].item()) / person_unscaled[i].item() * 100:.2f}%)"
+                            f"- Increase {next((k for k, v in metadata.question_columns.items() if v == col), None)} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f} (+{(person_new_unscaled[i].item() - person_unscaled[i].item()) / person_unscaled[i].item() * 100:.2f}%)"
                         )
                     elif changes[i] < 0:
                         st.write(
-                            f"- Decrease {col} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f} ({(person_new_unscaled[i].item() - person_unscaled[i].item()) / person_unscaled[i].item() * 100:.2f}%)"
+                            f"- Decrease {next((k for k, v in metadata.question_columns.items() if v == col), None)} from {person_unscaled[i].item():.2f} to {person_new_unscaled[i].item():.2f} ({(person_new_unscaled[i].item() - person_unscaled[i].item()) / person_unscaled[i].item() * 100:.2f}%)"
                         )
 
                 st.write("These adjustments should help get an approved decision.")

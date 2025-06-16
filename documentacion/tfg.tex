@@ -117,64 +117,36 @@
 }
 
 \newpage
-\begin{abstract}
-Neural networks are increasingly employed in the banking sector for tasks ranging from credit scoring to fraud detection. Despite their powerful predictive capabilities, the opacity of neural network models poses significant challenges to their interpretability. This project aims to bridge the gap between neural network architectures and their practical interpretation by developing an innovative counterfactual method. Using Lagrange multipliers and Newton's method for optimization, we provide the minimal changes needed to modify a model's classification output for a certain instance. The proposed method fulfills most of the desired properties in counterfactual explanations, highlighting similarity, diversity, and actionability, where, through a set of weights, users can encode their real-life difficulty to change some features, tailoring the explanation given to the specific needs of every profile.\\
-\\
+\section*{Abstract}
+Neural networks are increasingly employed in the banking sector for tasks ranging from credit scoring to fraud detection. Despite their powerful predictive capabilities, the opacity of neural network models poses significant challenges to their interpretability. This project aims to bridge the gap between neural network architectures and their practical interpretation by developing an innovative counterfactual method. Using Lagrange multipliers and Newton's method for optimization, we provide the minimal changes needed to modify a model's classification output for a certain instance. The proposed method fulfills most of the desired properties in counterfactual explanations, highlighting similarity, diversity, and actionability, where, through a set of weights, users can encode their real-life difficulty to change some features, tailoring the explanation given to the specific needs of every profile.
+
 \textbf{Keywords}: Counterfactual explanations; Interpretability; Neural networks; Lagrange multipliers; Newton optimization; Actionability; 
-\\
-\\
-\\
-\\
-\\
-Las redes neuronales se emplean cada vez más en el sector bancario para tareas que van desde la concesión de crédito hasta la detección de fraude. Pese a su gran capacidad predictiva, la opacidad de estos modelos plantea serios retos de interpretabilidad. Este proyecto pretende salvar la distancia entre la potencia de las redes neuronales y su comprensión práctica mediante el desarrollo de un método contrafactual innovador. Utilizando multiplicadores de Lagrange y el método de Newton para la optimización, identificamos los cambios mínimos necesarios para modificar la salida de clasificación de un modelo en un caso concreto. El método propuesto satisface la mayoría de las propiedades deseables en las explicaciones contrafactuales, destacando la similitud, la diversidad y la accionabilidad: a través de un vector de pesos, los usuarios pueden codificar la dificultad real de alterar cada característica y personalizar así la explicación a las necesidades de cada perfil.\\
-\\
-\textbf{Palabras Clave}: Explicaciones contrafactuales; Interpretabilidad; Redes neuronales; Multiplicadores de Lagrange; Optimización de Newton; Accionabilidad;
-
-    % \textcolor{red}{Un abstract demasiado abstracto. Aterrizalo un poco con cual es tu objetivo, como lo buscas, y un resumen de resultados}
-\end{abstract}
-
-\newpage
-\tableofcontents
-\thispagestyle{fancy}
-
-
-\newpage
 
 \section*{Introduction}
 Many entities like banks face two challenges when it comes to regulations in the AI field. Regulations such as the EU GDPR require institutions to \emph{explain} model outputs used for business decisions. Classic scoring engines (logistic regression, decision trees) used now are interpretable, but often underperform modern neural networks.
 
 Our goal is to bridge performance and interpretability by creating a \emph{counterfactual explanations} method. These methods are part of the eXplicable Artificial Intelligence (XAI) field, and they are used to explain what is the change needed to flip a model's decision for a given instance. For example, if a loan application is rejected, the method should suggest actionable changes to the applicant's profile that would change the decision to be approved. 
+
+The field of counterfactual explainations has been around for a while, with many methods proposed to tackle the problem of explaining neural networks. Not all methods are have the same properties, and often is difficult to choose the one suitable for a given use case. For that, ~\cite{guidotti2024counterfactual_res} proposes a set of properties a good counterfactual explanation should fulfill, such as \emph{validity, similarity, plausibility, actionability, diversity, efficiency,} and \emph{stability}. Some methods like WACH~\cite{wachter2017counterfactual_res}, ACTREC~\cite{ustun2019actionable_res}, DiCE~\cite{dice_res} and SGNCE~\cite{sgnce_res} have been proposed to tackle the problem of counterfactual explanations, but they do not fulfill all the properties mentioned above. 
+
+\section*{Project definition}
+In this project, we propose an innovative counterfactual method based on mathematical optimization that uses a set of weights that the user can change to codify which variables are more difficult to modify than others. This ensures most of the counterfactual properties and establishes a baseline for future work, where the method can be improved to satisfy all of them. 
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.4\textwidth]{images/diagram}
-    \caption{Counterfactual model architecture}
-    \label{fig:architecture}
+    \caption{Counterfactual model architecture.}
 \end{figure}
 
-
-\section*{Related Work}
-The field of Counterfactual Explainations has been around for a while, with many methods proposed to tackle the problem of explaining neural networks. Not all methods are have the same properties, and often is difficult to choose the one suitable for a given use case. For that, ~\cite{guidotti2024counterfactual} proposes a set of properties a good counterfactual explanation should fulfill, such as \emph{validity, similarity, plausibility, actionability, diversity, efficiency,} and \emph{stability}. Some methods like WACH~\cite{wachter2017counterfactual}, ACTREC~\cite{ustun2019actionable}, DiCE~\cite{dice} and SGNCE~\cite{sgnce} have been proposed to tackle the problem of counterfactual explanations, but they do not fulfill all the properties mentioned above. 
-
-In this project, we propose an innovative method based on mathematical optimization that uses second-order derivatives to find the optimal solution to the problem, ensuring most of the properties and establishing a baseline for future work, where the method can be improved to fulfill all of them.
-
-\section*{Methodology}
+\section*{System Description}
 The method we propose formulates the counterfactual generation using Lagrangian multipliers. Given an instance $\mathbf{x}\! \in\! \mathbb{R}^m$, a differentiable classifier $M$, and a decision threshold $\varepsilon$, we seek to solve the optimization problem defined as
 \begin{equation}
 \label{eq:lagrangian_eqn}
-\mathcal{L}(\mathbf{x}, \lambda) = \; C(\mathbf{x}) + \lambda \, \Bigl(M(\mathbf{x}) - \varepsilon \Bigr)
+\mathcal{L}(\mathbf{x}, \lambda) = \; C(\mathbf{x}) + \lambda \, \Bigl(M(\mathbf{x}) - \varepsilon \Bigr),
 \end{equation}
-
 where $C$ is a \emph{weighted} $\ell_2$ cost $C(\mathbf{x}) = \sum_{i=1}^m w_i\bigl(x_i - x_{0,i}\bigr)^2$. The weights, editable by the entity or end-user, encode the relative effort, or cost, of changing each feature $x_i$ from its original value. If the weight for a feature is high, it means that changing that feature is difficult or costly, while a low weight means that changing that feature is easy or cheap. This is the key part of the method, as it allows for flexibility, customization and actionability. 
 
-To solve equation \ref{eq:lagrangian_eqn}, we need to find the minimum of the Lagrangian function $\mathcal{L}$, i.e., finding the values that satisfy $\nabla \mathcal{L}(\mathbf{x}, \lambda) = 0$, where the system of equations is given by
-\[
-F(\mathbf{x}, \lambda) \;=\; \nabla \mathcal{L}(\mathbf{x}, \lambda) \;=\; 0:
-\begin{cases}
-\nabla C(\mathbf{x}) \;-\;\lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0 \\
--\,M(\mathbf{x})\;+\;\varepsilon\;=\;0
-\end{cases}
-\]
-This is solved via a pseudo-Newton iteration that leverages \textbf{second-order} derivatives to find the roots of $F$. The normal update step is given by
+To solve equation \ref{eq:lagrangian_eqn}, we need to find the minimum of the Lagrangian function $\mathcal{L}$, i.e., finding the values that satisfy $\nabla \mathcal{L}(\mathbf{x}, \lambda) = 0$. This is solved via a pseudo-Newton iteration that leverages \textbf{second-order} derivatives to find the roots of $F$. The normal update step is given by
 \[
 \bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
 \;=\;
@@ -184,87 +156,71 @@ This is solved via a pseudo-Newton iteration that leverages \textbf{second-order
 \;\cdot\;
 \nabla\mathcal{L}\bigl(\mathbf{x}_n,\lambda_n\bigr).
 \]
-As we are using the inverse of the hessian matrix, ill-conditioned Hessians might make the previous step unfeasible to calculate. To mitigate this, we implement an alternative update step that uses the normalized gradient of the model's output with respect to the input features to update even when the Hessian is ill-conditioned:
 
+As we are using the inverse of the hessian matrix, ill-conditioned Hessians might make the previous step unfeasible to calculate. To mitigate this, we implement an alternative update step that uses the normalized gradient of the model's output with respect to the input features to update even when the Hessian is ill-conditioned.
 \[
     \mathbf{x}_{n+1} = \mathbf{x}_n - \frac{\nabla M(\mathbf{x_n})}{|\nabla M(\mathbf{x_n})|};\;
-    \lambda_{n+1} = \lambda_n
+    \lambda_{n+1} = \lambda_n.
 \]
 
 \subsection*{Handling discrete features}
-The previous equations assume that all input variables are continuous. However, not all input variables are numeric in real datasets. For example, if the number of credit lines is used as an input variable %\textcolor{red}{pensar otro ejemplo}
-, it cannot take a decimal value. An adaptive regularizer is needed to force the input variable to collapse to an integer value:
+The previous equations assume that all input variables are continuous. However, not all input variables are numeric in real datasets. For example, if the number of credit lines is used as an input variable, it cannot take a decimal value. An adaptive regularizer is needed to force the input variable to collapse to an integer value.
 \[
-R(\mathbf{x})=\sum_{i:\, x_i\in \mathcal{Z}}\bigl(x_i-\lfloor x_i\rceil\bigr)^2
+R(\mathbf{x})=\sum_{i:\, x_i\in \mathcal{Z}}\bigl(x_i-\lfloor x_i\rceil\bigr)^2.
 \]
+
 This regularizer is injected into $C$ only when the iterate is near the optimal solution, forcing integer-valued features towards \emph{legal} values. Categorical features are one-hot encoded, but we have not yet implemented a way to handle them in the method.
 
-\section*{Empirical Evaluation}
-To evaluate we use different datasets~\cite{kaggleLoan1,spambase,santander} ranging from 8 to 200 features. The metrics we evaluate are: validity, similarity, plausibility, efficiency, stability, and actionability.
+\section*{Results}
+To evaluate we use different datasets~\cite{kaggleLoan1_res,spambase_res,santander_res} ranging from 8 to 200 features. The metrics we evaluate are: validity, similarity, plausibility, efficiency, stability, and actionability.
 %\textcolor{red}{Los siguientes párrafos, mételos en un itemize}
 \begin{enumerate}
     \item \textbf{Validity \& Similarity.} Newton's algorithm finds the minimal change needed to change the model's classification output for a specific sample. 
     \item \textbf{Plausibility.} $100\%$ of generated explanations were in-bounds of the original dataset and non-outlying.  
-    \item \textbf{Efficiency.} Runtime varying between $0.02$-$0.16$ in the datasets used, $\sim10x$ faster than DiCE~\cite{dice} and more than $100x$ faster than SGNCE~\cite{sgnce}
+    \item \textbf{Efficiency.} Runtime varying between $0.02$-$0.16$ in the datasets used, $\sim10x$ faster than DiCE~\cite{dice_res} and more than $100x$ faster than SGNCE~\cite{sgnce_res}.
     \item \textbf{Stability.} Counterfactual distance ratios $\approx0.8$–$1.0$, showing stable results.
     \item \textbf{Actionability.} We let the user to define the weights, encoding the difficulty to change each feature, allowing for diverse and realistic counterfactuals.
 \end{enumerate}
 
-% The method proposed in this work correctly generates counterfactuals that are valid and successfully finds the minimal change needed to flip the model's decision, fulfilling the similarity property as well. We measure plausibility with two main metrics. We evaluate if the counterfactuals are within the empirical bounds of the original dataset, and we also use the Local Outlier Factor (LOF)~\cite{lof} to measure if they are in-distribution. All of these criteria are met by all of the samples in out test set, composed of 176 instances of each dataset. 
+We created a \texttt{streamlit} website that showcases the model's capabilities, allowing users to interactively generate counterfactuals. This is a customizable web that works with any dataset and consists of a form in which the client/user introduces their personal data and the set of weights they want to use. If the model outputs a negative classification for the data introduced, the website will generate the counterfactual and tell the user the changes they should make to flip the model's decision. The code to reproduce this website can be found here \url{https://github.com/javiprietod/TFG}.
 
-% In the field of efficiency, we measure the time it takes to generate a counterfactual for each instance. Our method takes around 0.02 seconds for 8 features and around 0.16 seconds for 200 features, which is around 10 times faster than DiCE~\cite{dice} and more than 100x faster than SGNCE. In stability we obtain distance ratios of around 0.8 to 1.0 across $20$-nearest neighbors, meaning that the method yields similar counterfactuals for similar initial instances. Actionability is one of our biggest contributions, as we allow the user to set the weights for each feature, which allows for a wide range of counterfactuals to be generated. As the property is defined as how realistic are the changes proposed, and the user can set the weights to determine how easy or difficult it is to change each feature, we revolutionize the definition.
-
-\section*{Web Application}
-A lightweight \texttt{streamlit} website showcases the model's capabilities, allowing users to interactively generate counterfactuals. This is a customizable web that works with any dataset and consists of a form in which the client/user introduces their personal data and the set of weights they want to use. If the model outputs a negative classification for the data introduced, the website will generate the counterfactual and tell the user the changes they should make to flip the model's decision. The code to reproduce this website can be found here: \url{https://github.com/javiprietod/TFG}
-
-\section*{Conclusions and Future Work} 
-
-%\textcolor{red}{Reescribir este párrafo, que esté basado en Newton no es lo importante si no lo que consigues con el método y las ventajas que tiene comparado con otros métodos}
-
+\section*{Conclusions and Future Work}
 This work presents the first counterfactual explanation algorithm whose search procedure is entirely grounded in Newton optimization. A weight vector inside the cost function encodes how hard it is in real life to modify each feature, so analysts or end-users can rule certain attributes immutable (e.g., age) or make others cheap to change. This innovative codification of reality has not yet been found in any method in the literature.
 
 Future work targets four extensions: (1) adding a sparsity regularizer to minimize the number of changed features, balancing similarity versus minimality; (2) learning an informed initial weight vector from logged user feedback so the system starts with feature costs that historically yielded the most actionable counterfactuals; (3) expanding the method to work with one-hot encoded categorical features; and (4) working with business stakeholders to deploy our solution in real world scenarios. Together, these directions aim to personalize explanations further and broaden dataset compatibility.
 
+
+
 \newpage
+\section*{Resumen}
+Las redes neuronales se emplean cada vez más en el sector bancario para tareas que van desde la concesión de crédito hasta la detección de fraude. Pese a su gran capacidad predictiva, la opacidad de estos modelos plantea serios retos de interpretabilidad. Este proyecto pretende salvar la distancia entre la potencia de las redes neuronales y su comprensión práctica mediante el desarrollo de un método contrafactual innovador. Utilizando multiplicadores de Lagrange y el método de Newton para la optimización, identificamos los cambios mínimos necesarios para modificar la salida de clasificación de un modelo en un caso concreto. El método propuesto satisface la mayoría de las propiedades deseables en las explicaciones contrafactuales, destacando la similitud, la diversidad y la accionabilidad: a través de un vector de pesos, los usuarios pueden codificar la dificultad real de alterar cada característica y personalizar así la explicación a las necesidades de cada perfil.
+
+\textbf{Palabras Clave}: Explicaciones contrafactuales; Interpretabilidad; Redes neuronales; Multiplicadores de Lagrange; Optimización de Newton; Accionabilidad;
 
 \section*{Introducción}
 Muchas entidades, como los bancos, se enfrentan a dos desafíos en lo que respecta a la regulación del uso de la IA. Normativas como el GDPR Europeo exigen a las instituciones \emph{explicar} las salidas de los modelos que se utilizan para tomar decisiones de negocio. Los modelos clásicos que se emplean actualmente, como las regresiones logísticas o los árboles de decisión, son modelos interpretables, pero a menudo ofrecen un rendimiento inferior al de las redes neuronales modernas.
 
 Nuestro objetivo es lograr un equilibrio entre rendimiento e interpretabilidad mediante la creación de un método de \emph{explicaciones contrafactuales}. Estos métodos forman parte del campo de la Inteligencia Artificial Explicable (XAI) y se utilizan para explicar los cambios necesarios a un input para invertir la decisión de un modelo. Por ejemplo, si se rechaza una solicitud de préstamo, el método debe sugerir cambios realistas en el perfil del solicitante que harían que la decisión pasara a ser aprobada.
 
+El campo de las explicaciones contrafactuales existe desde hace tiempo y se han propuesto muchos métodos para abordar el problema de explicar redes neuronales. No todos los métodos poseen las mismas propiedades y, a menudo, resulta difícil elegir el más adecuado para un caso de uso concreto. Para ello, \cite{guidotti2024counterfactual_res} propone un conjunto de propiedades que una buena explicación contrafactual debería cumplir, tales como \emph{validez, minimalidad, similitud, plausibilidad, accionabilidad, diversidad, eficiencia} y \emph{estabilidad}. Algunos métodos como WACH~\cite{wachter2017counterfactual_res}, ACTREC~\cite{ustun2019actionable_res}, DiCE~\cite{dice_res} y SGNCE~\cite{sgnce_res} se han propuesto para abordar el problema de las explicaciones contrafactuales, pero no satisfacen todas las propiedades mencionadas.
+
+\section*{Definición del proyecto}
+En este proyecto proponemos un método innovador basado en optimización matemática que usa un vector de pesos para que los usuarios codifique como de complicado es cambiar una variable frente a las otras. Con este método cumplimos la mayoría de las propiedades y establecemos un marco para trabajos futuros, donde el método pueda mejorarse para cumplir todas ellas.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.4\textwidth]{images/diagram}
-\caption{Arquitectura del modelo contrafactual}
-\label{fig:architecture_esp}
+\caption{Arquitectura del modelo contrafactual.}
 \end{figure}
 
-\section*{Trabajos Relacionados}
-El campo de las explicaciones contrafactuales existe desde hace tiempo y se han propuesto muchos métodos para abordar el problema de explicar redes neuronales. No todos los métodos poseen las mismas propiedades y, a menudo, resulta difícil elegir el más adecuado para un caso de uso concreto. Para ello, \cite{guidotti2024counterfactual} propone un conjunto de propiedades que una buena explicación contrafactual debería cumplir, tales como \emph{validez, minimalidad, similitud, plausibilidad, accionabilidad, diversidad, eficiencia} y \emph{estabilidad}. Algunos métodos como WACH~\cite{wachter2017counterfactual}, ACTREC~\cite{ustun2019actionable}, DiCE~\cite{dice} y SGNCE~\cite{sgnce} se han propuesto para abordar el problema de las explicaciones contrafactuales, pero no satisfacen todas las propiedades mencionadas.
-
-En este proyecto proponemos un método innovador basado en optimización matemática que emplea derivadas de segundo orden para hallar la solución óptima al problema, asegurando la mayoría de las propiedades y estableciendo un marco para trabajos futuros, donde el método pueda mejorarse para cumplirlas todas.
-
-\section*{Metodología}
+\section*{Descripción del sistema}
 El método que proponemos formula la generación de contrafactuales mediante multiplicadores de Lagrange. Dada una instancia $\mathbf{x} \in \mathbb{R}^m$, un clasificador diferenciable $M$ y un umbral de decisión $\varepsilon$, buscamos resolver el problema de optimización definido como
 \begin{equation}
 \label{eq:lagrangian_eqn_es}
-\mathcal{L}(\mathbf{x}, \lambda) = C(\mathbf{x}) + \lambda \cdot \Bigl(M(\mathbf{x}) - \varepsilon \Bigr)
+\mathcal{L}(\mathbf{x}, \lambda) = C(\mathbf{x}) + \lambda \cdot \Bigl(M(\mathbf{x}) - \varepsilon \Bigr),
 \end{equation}
-
 donde $C$ es un función de distancia $\ell_2$ ponderada $C(\mathbf{x}) = \sum_{i=1}^m w_i\bigl(x_i - x_{0,i}\bigr)^2$. Los pesos, modificables por la entidad o el usuario final, codifican el esfuerzo relativo, o coste, de cambiar cada característica $x_i$ respecto a su valor original. Un peso alto significa que cambiar esa característica es difícil o costoso, mientras que un peso bajo indica que es fácil o barato. Esta es la parte clave del método, ya que permite flexibilidad, personalización y accionabilidad.
 
-Para resolver la ecuación \ref{eq:lagrangian_eqn_es}, debemos encontrar el mínimo de la función Lagrangiana $\mathcal{L}$, es decir, hallar los valores que satisfacen $\nabla \mathcal{L}(\mathbf{x}, \lambda) = 0$, donde el sistema de ecuaciones viene dado por
-
-\[
-F(\mathbf{x}, \lambda) \;=\; \nabla \mathcal{L}(\mathbf{x}, \lambda) \;=\; 0:\;
-\begin{cases}
-\nabla C(\mathbf{x}) \; -\; \lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0 \\
--\,M(\mathbf{x})\;+\;\varepsilon\;=\;0
-\end{cases}
-\]
-
-Esto se resuelve mediante una iteración pseudo‑Newton que aprovecha las derivadas de segundo orden para hallar las raíces de $F$. El paso de actualización habitual es
-
+Para resolver la ecuación \ref{eq:lagrangian_eqn_es}, debemos encontrar el mínimo de la función Lagrangiana $\mathcal{L}$, es decir, hallar los valores que satisfacen $\nabla \mathcal{L}(\mathbf{x}, \lambda) = 0$. El sistema generado se resuelve mediante una iteración pseudo‑Newton que aprovecha las derivadas de segundo orden para hallar las raíces de $\nabla \mathcal{L}(\mathbf{x}, \lambda)$. El paso de actualización habitual es
 \[
 \bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
 \;=\;
@@ -275,40 +231,81 @@ Esto se resuelve mediante una iteración pseudo‑Newton que aprovecha las deriv
 \nabla\mathcal{L}\bigl(\mathbf{x}_n,\lambda_n\bigr).
 \]
 
-Como utilizamos la inversa de la matriz Hessiana, las Hessianas mal condicionadas o no invertibles hacen inestable el proceso de optimización. Para mitigar esto, implementamos un paso de actualización alternativo que emplea el gradiente normalizado de la salida del modelo respecto a las características de entrada para actualizar incluso cuando la Hessiana está mal condicionada:
-
+Como utilizamos la inversa de la matriz Hessiana, las Hessianas mal condicionadas o no invertibles hacen inestable el proceso de optimización. Para mitigar esto, implementamos un paso de actualización alternativo que emplea el gradiente normalizado de la salida del modelo respecto a las características de entrada para actualizar incluso cuando la Hessiana está mal condicionada.
 \[
 \mathbf{x}_{n+1} = \mathbf{x}_n - \frac{\nabla M(\mathbf{x_n})}{|\nabla M(\mathbf{x_n})|};\;\;
-    \lambda_{n+1} = \lambda_n
+    \lambda_{n+1} = \lambda_n.
 \]
 
 \subsection*{Tratamiento de características discretas}
-Las ecuaciones anteriores suponen que todas las variables de entrada son continuas. Sin embargo, en los conjuntos de datos reales no todas las variables son numéricas. Por ejemplo, si se utiliza el número de líneas de crédito como variable de entrada, esta no puede tomar un valor decimal. Se necesita un regularizador adaptativo que obligue a la variable de entrada a colapsar a un valor entero:
-
+Las ecuaciones anteriores suponen que todas las variables de entrada son continuas. Sin embargo, en los conjuntos de datos reales no todas las variables son numéricas. Por ejemplo, si se utiliza el número de líneas de crédito como variable de entrada, esta no puede tomar un valor decimal. Se necesita un regularizador adaptativo que obligue a la variable de entrada a colapsar a un valor entero.
 \[
-R(\mathbf{x})=\sum_{i:\, x_i\in \mathcal{Z}}\bigl(x_i-\lfloor x_i\rceil\bigr)^2
+R(\mathbf{x})=\sum_{i:\, x_i\in \mathcal{Z}}\bigl(x_i-\lfloor x_i\rceil\bigr)^2.
 \]
 
 Este regularizador se introduce en $C$ sólo cuando la iteración está cerca de la solución óptima, forzando las características enteras hacia valores enteros. Las características categóricas se codifican en one‑hot, pero aún no hemos implementado un modo de manejarlas en el método.
 
-\section*{Evaluación Empírica}
-Para evaluar, utilizamos diferentes conjuntos de datos~\cite{kaggleLoan1,spambase,santander} que van desde 8 hasta 200 características. Las métricas que evaluamos son: validez, similitud, plausibilidad, eficiencia, estabilidad y accionabilidad.
+\section*{Resultados}
+Para evaluar, utilizamos diferentes conjuntos de datos~\cite{kaggleLoan1_res,spambase_res,santander_res} que van desde 8 hasta 200 características. Las métricas que evaluamos son: validez, similitud, plausibilidad, eficiencia, estabilidad y accionabilidad.
 \begin{enumerate}
 \item \textbf{Validez y Similitud.} El algoritmo de Newton encuentra el cambio mínimo necesario para alterar la salida de clasificación del modelo para una muestra específica.
 \item \textbf{Plausibilidad.} El 100\% de las explicaciones generadas se encuentran dentro de los límites del conjunto de datos original y no eran \emph{outliers}.
-\item \textbf{Eficiencia.} Tiempos de ejecución entre $0.02$ y $0.16$ segundos en los conjuntos utilizados, aproximadamente $10\times$ más rápido que DiCE~\cite{dice} y más de $100\times$ más rápido que SGNCE~\cite{sgnce}.
+\item \textbf{Eficiencia.} Tiempos de ejecución entre $0.02$ y $0.16$ segundos en los conjuntos utilizados, aproximadamente $10\times$ más rápido que DiCE~\cite{dice_res} y más de $100\times$ más rápido que SGNCE~\cite{sgnce_res}.
 \item \textbf{Estabilidad.} Ratios de distancia contrafactuales $\approx0.8$–$1.0$, mostrando resultados estables.
 \item \textbf{Accionabilidad.} Permitimos al usuario definir los pesos, codificando la dificultad de cambiar cada característica, lo que posibilita contrafactuales diversos y realistas.
 \end{enumerate}
 
-\section*{Aplicación Web}
-Se ha desarrollado un sitio web en \texttt{streamlit} que muestra las capacidades del modelo, permitiendo a los usuarios generar contrafactuales de forma interactiva. Es una interfaz personalizable que funciona con cualquier conjunto de datos y consiste en un formulario donde el cliente introduce sus datos personales y el conjunto de pesos que desea utilizar. Si el modelo produce una clasificación negativa para los datos introducidos, el metodo generará el contrafactual y mostrará al usuario los cambios necesarios para invertir la decisión. El código para reproducir esta web está disponible en: \url{https://github.com/javiprietod/TFG}
+También, se ha desarrollado un sitio web en \texttt{streamlit} que muestra las capacidades del modelo, permitiendo a los usuarios generar contrafactuales de forma interactiva. Consiste en un formulario donde el cliente introduce sus datos personales y el conjunto de pesos que desea utilizar. Si el modelo produce una clasificación negativa para los datos introducidos, el metodo generará el contrafactual y mostrará al usuario los cambios necesarios para invertir la decisión. El código para reproducir esta web está disponible en \url{https://github.com/javiprietod/TFG}.
 
 \section*{Conclusiones y Trabajo Futuro}
 Este trabajo presenta el primer algoritmo de explicaciones contrafactuales cuyo procedimiento de búsqueda se basa íntegramente en optimización de Newton. Un vector de pesos dentro de la función de coste codifica la dificultad real de modificar cada característica, de modo que los analistas o usuarios finales pueden declarar ciertos atributos como inmutables (p. ej. la edad) o hacer otros baratos de cambiar. Esta novedosa codificación de la realidad no se ha encontrado aún en ningún método de la literatura.
 
 El trabajo futuro contempla cuatro extensiones: (1) añadir un regularizador para minimizar el \emph{número} de características modificadas, equilibrando similitud frente a minimalidad; (2) aprender un vector de pesos inicial informado a partir del feedback histórico de los usuarios para que el sistema parta de costes que previamente hayan generado contrafactuales más accionables; (3) ampliar el método para trabajar con características categóricas codificadas en one‑hot; y (4) colaborar con agentes del sector para desplegar nuestra solución en escenarios reales. Conjuntamente, estas líneas pretenden personalizar aún más las explicaciones y ampliar la compatibilidad con distintos conjuntos de datos.
 
+
+\begin{thebibliography}{99}
+
+\bibitem{wachter2017counterfactual_res}
+S.~Wachter, B.~Mittelstadt, and C.~Russell.
+\newblock Counterfactual Explanations without Opening the Black Box: Automated Decisions and the GDPR.
+\newblock {\em SSRN Electronic Journal}, 2017.
+
+\bibitem{guidotti2024counterfactual_res}
+R.~Guidotti.
+\newblock Counterfactual Explanations and How to Find Them: Literature Review and Benchmarking.
+\newblock {\em Data Mining and Knowledge Discovery}, 38:2770--2824, 2024.
+
+\bibitem{ustun2019actionable_res}
+B.~Ustun, A.~Spangher, and Y.~Liu.
+\newblock Actionable Recourse in Linear Classification.
+\newblock {\em Proceedings of KDD '19}, 2019.
+
+\bibitem{kaggleLoan1_res}
+\newblock H, M.~Y. (2022). Loan default dataset. Kaggle. 
+\newblock \url{https://www.kaggle.com/datasets/yasserh/loan-default-dataset}.
+
+\bibitem{spambase_res}
+\newblock Hopkins, M., Reeber, E., Forman, G., \& Suermondt, J. (1999). Spambase [Dataset]. UCI Machine Learning Repository. .
+\newblock \url{https://doi.org/10.24432/C53G6X}.
+
+\bibitem{santander_res}
+\newblock Piedra, M., Dane, S., \& Jimenez, S. (2019). Santander Customer Transaction Prediction [Competition]. Kaggle.
+\newblock \url{https://kaggle.com/competitions/santander-customer-transaction-prediction}.
+
+\bibitem{dice_res}
+R.~K. Mothilal, A.~Sharma, and C.~Tan.
+\newblock Explaining machine learning classifiers through diverse counterfactual explanations.
+\newblock In {\em Proceedings of the 2020 Conference on Fairness, Accountability, and Transparency (FAT* '20)}, pages 607--617, 2020.
+
+\bibitem{sgnce_res}
+K.~Mohammadi, A.-H. Karimi, G.~Barthe, and I.~Valera.
+\newblock Scaling Guarantees for Nearest Counterfactual Explanations.
+\newblock In M. Fourcade, B. Kuipers, S. Lazar \& D. K. Mulligan (eds.), AIES (p./pp. 177-187), : ACM. ISBN: 978-1-4503-8473-5, 2021.
+\end{thebibliography}
+
+\newpage
+\tableofcontents
+\thispagestyle{fancy}
 \newpage
 \setcounter{page}{1}
 \fancyfoot[C]{
@@ -328,8 +325,8 @@ The aim of this project is to provide a solution for two main problems. First, n
 
 Our objective is to devise a novel counterfactual technique based on an \emph{optimal mathematical solution} to the problem, using optimization methods and the model's derivatives to find the minimal shift needed for a given instance to change its output. We propose a innovative solution in which the end user is able to weigh how easy or difficult is to change each of the original features.
 
-In Section \ref{sec:related} we discuss related works in the field of counterfactual explanations, highlighting the properties a good explanation should fulfill and the current state-of-the-art methods. In Section \ref{sec:methodology} presents the methodology used in this project, including the mathematical formulation of the problem (Subsections \ref{sec:mathematical} and \ref{sec:singular}), the use of weights to shape the distance function (Subsection \ref{sec:weights}), the handling of actionability (Subsections \ref{sec:discrete} and \ref{sec:enforcing_plausibility}), and the implementation details(\autoref{alg:newton_counterfactual} and Subsections \ref{sec:threshold} and \ref{sec:stopping}). We evaluate the proposed method in Section \ref{sec:evaluation}, where we analyse each of the properties we fulfill in depth and we show the website created in Section \ref{sec:website}
-Finally, we conclude the project in Section \ref{sec:conclusion} and discuss future work. The code is available at \url{https://github.com/javiprietod/TFG}
+In Section \ref{sec:related} we discuss related works in the field of counterfactual explanations, highlighting the properties a good explanation should fulfill and the current state-of-the-art methods. In Section \ref{sec:methodology} presents the methodology used in this project, including the mathematical formulation of the problem (Subsections \ref{sec:mathematical} and \ref{sec:singular}), the use of weights to shape the distance function (Subsection \ref{sec:weights}), the handling of actionability (Subsections \ref{sec:discrete} and \ref{sec:enforcing_plausibility}), and the implementation details(\autoref{alg:newton_counterfactual} and Subsections \ref{sec:threshold} and \ref{sec:stopping}). We evaluate the proposed method in Section \ref{sec:evaluation}, where we analyze each of the properties we fulfill in depth and we show the website created in Section \ref{sec:website}
+Finally, we conclude the project in Section \ref{sec:conclusion} and discuss future work. The code is available at \url{https://github.com/javiprietod/TFG}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% Related works %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -351,7 +348,7 @@ Counterfactual methods can be categorized by the strategy used to create the exp
 
 The task of finding an algorithm that fulfills all of the properties has been attempted in many papers. The most well-known technique in counterfactual space is WACH~\cite{wachter2017counterfactual}, one of the first papers to publish and propose these explanations. They propose a loss function, adopted by other explainers, consisting in a distance function and a cross-entropy loss, which they try to minimize with a common optimizer such as SGD~\cite{sgd} or Adam~\cite{adam}. While it is a good starting point, it does not guarantee the optimal solution, and it is not guaranteed to converge to a solution that fulfills all the properties mentioned above.
 
-Among the more rigorous contributions, ACTREC (Actionable Recourse)~\cite{ustun2019actionable}, is one of the first to address which features can be changed and which must remain fixed. ACTREC formulates the counterfactual generation as a discrete optimization problem using integer programming, ensuring feasibility, actionability, and minimal cost over a discretized space. It guarantees global optimality within its constraints but is limited to linear models and can become computationally intensive for high-dimensional problems
+Among the more rigorous contributions, ACTREC (Actionable Recourse)~\cite{ustun2019actionable}, is one of the first to address which features can be changed and which must remain fixed. ACTREC formulates the counterfactual generation as a discrete optimization problem using integer programming, ensuring feasibility, actionability, and minimal cost over a discretized space. It guarantees global optimality within its constraints but is limited to linear models and can become computationally intensive for high-dimensional problems.
 
 Another notable method is DiCE~\cite{dice}, which uses a differentiable loss function to generate a set of diverse counterfactuals. DiCE ensures validity and similarity while promoting diversity using Determinantal Point Processes~\cite{dpprocess}. While many methods focus on finding the closest counterfactual with high precision, DiCE offers users a broad range of actionable options not ensuring the closest counterfactual. 
 
@@ -389,15 +386,17 @@ We will discuss added regularizers added to this cost function later, but the ma
 
 \subsection{Mathematical solution}\label{sec:mathematical}
 The minimum value of $\mathcal{L}$ is found when the partial derivatives 
-w.r.t.\ $\mathbf{x}$ and $\lambda$ are equal to 0. This implies:
+w.r.t.\ $\mathbf{x}$ and $\lambda$ are equal to 0. This implies
 \begin{equation}\label{eq:deriv}
 F(\mathbf{x}, \lambda) \;=\; \nabla \mathcal{L}(\mathbf{x}, \lambda) \;=\; 0:
 \begin{cases}
 \nabla C(\mathbf{x}) \;-\;\lambda \cdot \bigl(\nabla M(\mathbf{x})\bigr) \;=\; 0 \\
--\,M(\mathbf{x})\;+\;\varepsilon\;=\;0
+-\,M(\mathbf{x})\;+\;\varepsilon\;=\;0.
 \end{cases}
 \end{equation}
-To solve this problem we will use the \emph{Newton-Raphson} method to solve this mathematical problem, ensuring we reach the optimal solution. Newton's method is used to find the roots of a function, or the solution to the equation $f(x) = 0$. In optimization, with $f \in C^2$, we are trying to find the roots of $f'$, or the solutions to $f'(x) = 0$, known as critical points. These points can be minima, maxima or saddle points, but in the case of this problem we will try to find the minima of the function $f$. \par
+
+To solve this problem we will use the \emph{Newton-Raphson} method to solve this mathematical problem, ensuring we reach the optimal solution. Newton's method is used to find the roots of a function, or the solution to the equation $f(x) = 0$. In optimization, with $f \in C^2$, we are trying to find the roots of $f'$, or the solutions to $f'(x) = 0$, known as critical points. These points can be minima, maxima or saddle points, but in the case of this problem we will try to find the minima of the function $f$.
+
 For this, Newton-Raphson’s method of optimization uses the first and second term of the Taylor expansion of the function to find that point iteratively~\cite{fliege2009newton}. For 1 dimension, or 1 variable, the update rule is $x_{k+1}=x_{k}-{\frac {f'(x_{k})}{f''(x_{k})}}$. As seen in \eqref{eq:deriv}, we have at least two variables ($x$ and $\lambda$), so the we have to use the generalization of the iterative scheme using the hessian as the second derivative. Thus, the new iterative scheme obtained becomes
 \begin{equation}\label{eq:newton}
 \bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
@@ -410,7 +409,7 @@ For this, Newton-Raphson’s method of optimization uses the first and second te
 \end{equation}
 If we set $F(\mathbf{x},\lambda) \;=\;\nabla \mathcal{L}(\mathbf{x},\lambda)$, 
 the equation simplifies to
-\begin{equation}\label{eq:newton_simplified}
+\[
 \bigl(\mathbf{x}_{n+1},\,\lambda_{n+1}\bigr)
 \;=\;
 \bigl(\mathbf{x}_n,\,\lambda_n\bigr)
@@ -418,7 +417,7 @@ the equation simplifies to
 \mathbf{J}\!\bigl(F(\mathbf{x}_n,\lambda_n)\bigr)
 \;\cdot\;
 F\!\bigl(\mathbf{x}_n,\lambda_n\bigr),
-\end{equation}
+\]
 where
 \begin{equation}\label{eq:hessian}
 \mathbf{J}\!\bigl(F(\mathbf{x}_n,\lambda_n)\bigr)
@@ -432,7 +431,7 @@ H\!\bigl(C(\mathbf{x}_n)\bigr)\;-\;\lambda_n \cdot H\!\bigl(M(\mathbf{x}_n)\bigr
 \end{pmatrix}.
 \end{equation}
 Above, $H(\cdot)$ denotes the Hessian (second derivative) with respect to $\mathbf{x}$, 
-and $\nabla(\cdot)$ denotes the gradient (first derivative)
+and $\nabla(\cdot)$ denotes the gradient.
 
 A similar method of optimizing a loss function has been done in the past (BFGS \cite{papakonstantinou2009historical}), 
 but due to the computational complexity of calculating second derivatives, most of the work has been with its approximations. In this case, we will employ \emph{autograd}, PyTorch's automatic differentiation engine to calculate these second derivatives efficiently, eliminating the need for approximations. User must take into account that this method can only be applied with at least twice-differentiable models.
@@ -446,13 +445,13 @@ As discussed, one of the main problems when taking this optimization-based gener
 The second problem is harder to solve, and it is the one we will be discussing in this section. This problem appears when the gradient of the model is very close to 0, or the model has a flat curvature around a particular input. This leads again to a small eigenvalue, and the matrix becomes ill-conditioned. Common approaches to solve this problem, such as pseudo-inverse, damping techniques or using first-order updates, were applied unsuccesfully. Therefore, in order to mitigate this issue, we implement an alternative update strategy when the gradient of the model is below a certain threshold. %this type of ill-conditioning in the Hessian is detected (\textcolor{red}{How is detected?}).
 
 The alternative update step devised consists of using the normalized gradient of the model's output with respect to the input features to update. 
-\begin{equation}
+\[
     \begin{cases}
     \mathbf{x}_{n+1} = \mathbf{x}_n - \frac{\nabla M(\mathbf{x_n})}{|\nabla M(\mathbf{x_n})|}
     \\
     \lambda_{n+1} = \lambda_n
-    \end{cases}
-\end{equation}
+    \end{cases}.
+\]
 
 This update step is designed to move the input in the direction of the gradient of the model's output with respect to the input features, but more importantly, it works as a nudge in a direction to exit the flat region of the model. This update step proved very effective in practice, as it allows the algorithm to continue making progress towards a valid counterfactual even when the Hessian is ill-conditioned. 
 
@@ -463,16 +462,15 @@ In our counterfactual explanation framework, the distance function~\eqref{eq:cos
   \item \textbf{High weights} (\(w_i \!\!\gg\! 1\)) make changes in feature \(i\) “expensive”, discouraging the optimization from selecting that feature unless it is indispensable for flipping the model output.
   \item \textbf{Low weights} (\(w_i \!\!\approx\! 0\)) make changes in feature \(i\) “cheap”, biasing counterfactuals toward modifying \(x_i\) first.
 \end{itemize}
+
 By tuning the vector \(\mathbf{w}\), practitioners can encode domain knowledge about which features are easy or hard to change in the real world, and users can tune their explanations by encoding their desirability or actionability to alter some features over others.
 
-In practice, one might begin with all $w_i = 1$ (equal cost), inspect the resulting explanation, and then increase $w_i$ for features the end user finds unrealistic or non‐actionable, thereby refining the counterfactuals to be truly \emph{actionable}. We will analyse actionability in Section \ref{sec:actionability}.
+In practice, one might begin with all $w_i = 1$ (equal cost), inspect the resulting explanation, and then increase $w_i$ for features the end user finds unrealistic or non‐actionable, thereby refining the counterfactuals to be truly \emph{actionable}. We will analyze actionability in Section \ref{sec:actionability}.
 
 \subsection{Discrete features}\label{sec:discrete}
 To address discrete variables, we impose a regularizer to the distance function worked the best for the task. The regularizer is designed to have minima at the integer points, so Newton's method converges to one of those points.
 
 % {\color{red} Resumir! Quita todo lo que no sea el regularizador definitivo
-
-
 % We explored different trigonometric funcions, such as sines and cosines with periods matching the integers, but some features were getting stuck on the maxima of that function, as it has derivative 0 as well and Newton's method is designed to find critical points in general. One of the functions proposed for solving the discrete challenge faced was
 % \begin{equation}
 %     tan(\pi * x)^2
@@ -486,15 +484,13 @@ To address discrete variables, we impose a regularizer to the distance function 
 % \end{figure}
 % This function takes the value 0 in the integer points, but more importantly, they are minima, which are critical points in the newton's method. This means that iteratively, the features where the regularization is enforced will end up in one of those points because the Newton's method aims to find the points that make $f'(x) = 0$. This function works well in practice and with the newton method, but we proposed a better solution that works even better in practice. 
 The function proposed for this regularizer is
-\begin{equation}
-    (x - \left\lfloor x \right\rceil )^2
-\end{equation}
-that looks like
+\[
+    (x - \left\lfloor x \right\rceil )^2.
+\]
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.5\textwidth]{images/round_integers}
-    \caption{Round regularizer function that has null derivative in the integer values in the X axis}
-    \label{fig:reg round}
+    \caption{Round regularizer function that has null derivative in the integer values in the X axis.}
 \end{figure}
 % We say it works better beacause it reaches the same solution as the tangent function, but it is much more stable, faster and easier to compute. As the tangent funcion takes the value $\infty$ in the values exactly between integers, the gradients it takes are very big and the updates are very big as well, which leads to more inestability. The round function, on the other hand, takes the value 0 in the integers and 0.25 as its maximum, so it is much more stable and easier to compute. In theory, any function whose derivative is only 0 in the integers should work.
 
@@ -506,21 +502,27 @@ that looks like
 
 A common practice in data-science is to standardize the data, meaning that the features are transformed to have mean 0 and standard deviation 1, helping the model to converge faster and better. If the features are standardized, the regularizer will not work as expected. In this case, we can use a scaled version of the regularizer, which is designed to work with standardized features. The scaled version of the regularizer is defined as
 \begin{equation}\label{eq:cost_reg_scaled}
-    C(\mathbf{x}, \mathbf{x}', \mathbf{w}) = \sum_{i=1}^{m} \mathbf{w}_i \cdot (\mathbf{x}_i - \mathbf{x}'_{i})^2 + \sum_{i:\, x_i\in \mathcal{Z}} (x_i \cdot std_i + mean_i - \left\lfloor x_i \cdot std_i + mean_i \right\rceil )^2
+    C(\mathbf{x}, \mathbf{x}', \mathbf{w}) = \sum_{i=1}^{m} \mathbf{w}_i \cdot (\mathbf{x}_i - \mathbf{x}'_{i})^2 + \sum_{i:\, x_i\in \mathcal{Z}} (x_i \cdot std_i + mean_i - \left\lfloor x_i \cdot std_i + mean_i \right\rceil )^2,
 \end{equation}
 where \(std_i\) and \(mean_i\) are the standard deviation and mean of the \(i^{th}\) feature respectively, previously calculated with the whole dataset before training the model. 
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{images/discrete_process}
+    \caption{Process of counterfactual generation with integer regularizer. First we optimize without the regularizer, then it is added until reaching a solution. Finally freeze the discrete variables and finish optimizing.}
+\end{figure}
+
 Nevertheless, we will not use this regularizer in every iteration. This regularizer is not designed to find the optimal solution with the integer features, it is designed to find \emph{any} integer solution. For that, we want to approach the optimal solution first without taking into account the integer features, so that the solution with integers comes close to the optimal solution. Then, we incude the regularizer in the cost function, so the algorithm converges to the closest solution in which the integer columns are very close to being integers. When it is reaching the optimal solution with the regularizer, we disable the regularizer, round the features to the closest integer and disable them by setting the weights to $\infty$, so that it is virtually impossible to change that feature. After that, we continue the optimization process with the variables left to reach the optimal solution with the integer features frozen. A detailed algorithm of the process is shown in \autoref{alg:newton_counterfactual}.
 
-\textcolor{red}{Estaria bien una imagen que ilustre como funcione este proceso}
+
 
 \subsection{Enforcing plausibility}\label{sec:enforcing_plausibility}
-Another important property of counterfactuals is plausibility, which refers to the fact that the counterfactual should be a realistic and feasible instance. In our case, we want to ensure that the counterfactuals generated are plausible in the context of the problem at hand. To achieve this, we can use a set of constraints that limit the range of values that the features can take. These constraints can be defined based on domain knowledge, expert opinion or the data distribution in general. For example, if we are working with a dataset of bank customers, we can set constraints on the range of values that the features can take, such as the minimum and maximum values for each feature. This way, we can ensure that the counterfactuals generated are plausible and realistic in the context of the problem at hand
+Another important property of counterfactuals is plausibility, which refers to the fact that the counterfactual should be a realistic and feasible instance. In our case, we want to ensure that the counterfactuals generated are plausible in the context of the problem at hand. To achieve this, we can use a set of constraints that limit the range of values that the features can take. These constraints can be defined based on domain knowledge, expert opinion or the data distribution in general. For example, if we are working with a dataset of bank customers, we can set constraints on the range of values that the features can take, such as the minimum and maximum values for each feature. This way, we can ensure that the counterfactuals generated are plausible and realistic in the context of the problem at hand.
 
 In practice, we can implement these constraints by clamping the values of the features to their respective ranges, as we are lacking expert knowledge. This means that if a feature value goes below its minimum or above its maximum, it will be set to the closest valid value. 
 
 \subsection{Single variable optimization}\label{sec:single}
-As mentioned in the previous sections, features can be deactivated from the optimization process and frozen in value for reasons such as integer regularization or plausibility. Lagrange multipliers are a common way to optimize a multivariate function with restrictions. In the case of one variable, the problem becomes one-dimensional and it is easy to find the roots of the function $M(x) = \varepsilon$ using Newton's root finding method:
+As mentioned in the previous sections, features can be deactivated from the optimization process and frozen in value for reasons such as integer regularization or plausibility. Lagrange multipliers are a common way to optimize a multivariate function with restrictions. In the case of one variable, the problem becomes one-dimensional and it is easy to find the roots of the function $M(x) = \varepsilon$ using Newton's root finding method.
 \begin{equation}
     x_{n+1} = x_n - \frac{M(x_n) - \varepsilon}{\nabla M(x_n)}.
 \end{equation}
@@ -651,7 +653,7 @@ We assessed each generated counterfactual with two sanity checks. The first one 
 Both conditions were true for every record in the test set, indicating that the data respect domain bounds and exhibit no density anomalies under LOF (using 20 neighbours and $\alpha = 0.1$).
 
 \subsection{Efficiency}\label{sec:efficiency}
-Efficiency is a big part of any algorithm. It is one of the desired properties of any counterfactual explanation method. We can analyse our method in terms of efficiency by focusing on the possible bottlenecks of the algorithm. 
+Efficiency is a big part of any algorithm. It is one of the desired properties of any counterfactual explanation method. We can analyze our method in terms of efficiency by focusing on the possible bottlenecks of the algorithm. 
 
 The main bottleneck of the algorithm is the computation of the Hessian matrix, which is done using PyTorch's autograd. For now, this is not a problem, as financial datasets usually do not exceed the million samples, and we might only use a subset of the features. 
 
@@ -677,13 +679,13 @@ We have analyzed the efficiency of our method in terms of time and number of epo
         200 & $0.1661 \pm 0.0528$ & $0.2491 \pm 0.0706$\\
         \bottomrule
     \end{tabular}
-    \caption{Average time taken to output a counterfactual (mean $\pm$ standard deviation, over 176 runs) as a function of the number of features. Results shown without integer regularization(\ding{55}) and with integer regularization(\ding{51}), both increasing linearly with the number of variables}\label{tab:time}
+    \caption{Average time taken to output a counterfactual (mean $\pm$ standard deviation, over 176 runs) as a function of the number of features. Results shown without integer regularization(\ding{55}) and with integer regularization(\ding{51}), both increasing linearly with the number of variables.}\label{tab:time}
 \end{table}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.5\textwidth]{images/time_comparison}
-    \caption{Mean time comparison with and without using integer regularization. Increasing linearly as seen in Table \ref{tab:time}}
+    \caption{Mean time comparison with and without using integer regularization. Increasing linearly as seen in Table \ref{tab:time}.}
     \label{fig:time_comparison}
 \end{figure}
 
@@ -791,7 +793,7 @@ Other definitions of actionability include the availability or success-within-bu
     \bottomrule
 \end{tabular}
 
-    \caption{Percentage change in LoanAmount varying weights. Values corrrespond to the table above, as when the change in income is really big ($\sim20\%$), the change in LoanAmount is small ($\sim0\%$)}
+    \caption{Percentage change in LoanAmount varying weights. Values corrrespond to the table above, as when the change in income is really big ($\sim20\%$), the change in LoanAmount is small ($\sim0\%$).}
     \label{tab:delta_loan}
 \end{table}
 
@@ -803,7 +805,7 @@ We can also see that the percentage changes are very similar for proportional we
 To finally ground the algorithm in a real-world application, we have used the ~\cite{kaggleLoan1} dataset to create a simple interactive web application that allows users to input their data and obtain counterfactual explanations. The web application is built using \texttt{streamlit}, a python library that allows to create interactive web applications easily. This is only an example, the website is designed to by easily adaptable to any dataset which has been cleaned and preprocessed. 
 
 As shown in \autoref{fig:website}, the user can input their data in the form, select the features they want to change (or that they \emph{can} change), and the weights of those features. The weights are between $-1$ and $1$, but this done like this for a smoother and more intuitive user experience. In reality we take the $log_{10}$ of the value displayed. The minimum value is 0.1 and the maximum value is 10 as mentioned earlier, but this can be adjustable to any value. 
-%\textcolor{red}{Explicarlo mejor que es esto de can select the value}
+
 Categorical fields are one-hot encoded, and the user can select the value with a drop-down list. Returning to \autoref{fig:website}, we can see that the \emph{changeable} toggle button allows the user to select which features they want to change and the \emph{weights} slider allows the user to select the importance of each feature in the counterfactual explanation. These is not the case for every feature, and the entity can select which features they want the user to be able to change (for example, age is not a changeable value). The categorical features are deactivated as well, as we do not yet support the optimization of these features in the algorithm. We have as well added two buttons to showcase the website and fill the values of the form with a sample instances from the dataset, representing both classes.
 
 \begin{figure}[H]
@@ -812,8 +814,6 @@ Categorical fields are one-hot encoded, and the user can select the value with a
     \caption{Implementation of the algorithm in a web application using streamlit. User can determine if a field is changeable with the checkbox, and how difficult it is to change it using the slider.}
     \label{fig:website}
 \end{figure}
-
-
 
 \begin{figure}[H]
     \centering

@@ -9,6 +9,7 @@ documentacion/*
 !/documentacion/tfg.pdf
 !/documentacion/images/
 !data/Loan_default.csv
+!data/Loan_default.yaml
 
 # Mac files
 .DS_Store

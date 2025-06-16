@@ -89,6 +89,7 @@ class DatasetMetadata:
         self.mean_scaled: torch.Tensor = None
         self.dx_scaled: torch.Tensor = None
         self.obj_cols: dict[str, list[str]] = None  # values in categorical columns
+        self.question_columns: dict[str, str] = None
         self.int_cols: torch.Tensor = None
         self.max_values: torch.Tensor = None
         self.min_values: torch.Tensor = None
@@ -238,23 +239,32 @@ def load_data(
     """Load a CSV dataset and return dataloaders and metadata."""
 
     set_seed(42)
-
-    df = pd.read_csv(path)
-    if question_names:
-        column_dictionary = change_variable_names(df)
-        # Rename columns in the dataframe
-        df.rename(columns=column_dictionary, inplace=True)
-    else:
-        column_dictionary = {col: col for col in df.columns}
     metadata = DatasetMetadata()
 
+    df = pd.read_csv(path)
     metadata.path = path
+    # search for a file in the same folder as the path with the same name but .yaml extension
+    
+
+    if question_names:
+        yaml_path = os.path.splitext(path)[0] + ".yaml"
+        if not os.path.exists(yaml_path):
+
+            change_variable_names(df, path)
+        with open(yaml_path, "r") as file:
+            question_column_dict = yaml.safe_load(file)
+        metadata.question_columns = question_column_dict["question_columns"]
+        # Rename columns in the dataframe
+        df.rename(columns=metadata.question_columns, inplace=True)
+    else:
+        metadata.question_columns = {col: col for col in df.columns}
+
     metadata.batch_size = batch_size
     with open("datasets.yaml", "r") as file:
         datasets = yaml.safe_load(file)[metadata.path]
 
-    id_column = column_dictionary[datasets["id_column"]]
-    target_column = column_dictionary[datasets["target_column"]]
+    id_column = metadata.question_columns[datasets["id_column"]]
+    target_column = metadata.question_columns[datasets["target_column"]]
 
     # target column
     # search for the column that has only 1 and 0
@@ -282,7 +292,7 @@ def load_data(
 
 
     cols_for_mask = datasets[path]["weights"]
-    cols_for_mask = [column_dictionary[col] for col in cols_for_mask]
+    cols_for_mask = [metadata.question_columns[col] for col in cols_for_mask]
     metadata.changeable_col_names = cols_for_mask
     # create a mask for the columns
     col_mask = data.drop(target_column, axis=1).columns.isin(cols_for_mask)
@@ -361,8 +371,9 @@ def load_model(name: str) -> RecursiveScriptModule:
 
     return model
 
-def change_variable_names(dataset: pd.DataFrame):
-    client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+def change_variable_names(dataset: pd.DataFrame, path: str):
+    api_key = os.getenv("TOGETHER_API_KEY")
+    client = Together(api_key=api_key)
 
     # Prepare a prompt to generate short, user-friendly variable names for a form
     columns = list(dataset.columns)
@@ -380,7 +391,8 @@ def change_variable_names(dataset: pd.DataFrame):
                 "role": "user",
                 "content": prompt
             }
-        ],   
+        ],  
+        temperature=0 
     )
     # Extract the code block containing the dictionary from the response
     match = re.search(r"```python\n(.*?)\n```", response.choices[0].message.content, re.DOTALL)
@@ -390,10 +402,16 @@ def change_variable_names(dataset: pd.DataFrame):
         dict_match = re.search(r"column_labels\s*=\s*({.*})", code_str, re.DOTALL)
         if dict_match:
             column_labels = ast.literal_eval(dict_match.group(1))
-            print(column_labels)
+            print("Column labels:", column_labels)
         # else:
         #     column_labels = change_variable_names(dataset)
-    return column_labels
+    
+    # return column_labels
+    yaml_path = os.path.splitext(path)[0] + ".yaml"
+    if not os.path.exists(yaml_path):
+        with open(yaml_path, "w") as file:
+            yaml.dump({"question_columns": column_labels}, file, default_flow_style=False)
+
 
 
 

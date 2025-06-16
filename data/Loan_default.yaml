@@ -1,0 +1,19 @@
+question_columns:
+  Age: How old are you?
+  CreditScore: What is your credit score?
+  DTIRatio: What is your debt-to-income ratio?
+  Default: Have you defaulted on a loan before?
+  Education: What is your highest level of education?
+  EmploymentType: What type of employment do you have?
+  HasCoSigner: Do you have a co-signer?
+  HasDependents: Do you have any dependents?
+  HasMortgage: Do you have a mortgage?
+  Income: What is your annual income?
+  InterestRate: What interest rate are you expecting?
+  LoanAmount: How much do you want to borrow?
+  LoanID: What is your loan ID?
+  LoanPurpose: What is the purpose of the loan?
+  LoanTerm: How many months do you want to repay the loan?
+  MaritalStatus: What is your marital status?
+  MonthsEmployed: How many months have you been employed?
+  NumCreditLines: How many credit lines do you have?

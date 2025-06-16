@@ -1,13 +1,14 @@
+# Data files
+*.csv
+*.json
+
 # Data folder
-data/
+data/*
 documentacion/*
 !/documentacion/tfg.tex
 !/documentacion/tfg.pdf
 !/documentacion/images/
-
-# Data files
-*.csv
-*.json
+!data/Loan_default.csv
 
 # Mac files
 .DS_Store
@@ -17,7 +18,8 @@ documentacion/*
 
 # Models and runs
 runs/
-models/
+models/*
+!models/model_loan.pt
 
 # Additional files
 nohup.out

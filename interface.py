@@ -205,7 +205,7 @@ def main(samples: pd.DataFrame, model: torch.nn.Module, metadata: DatasetMetadat
 
 if __name__ == "__main__":
     filename = "data/Loan_default.csv"
-    model_name = "model_small"
+    model_name = "model_loan"
     # model = main_train(filename, model_name)
     model = load_model(model_name).to(device)
     # load a pickle file
